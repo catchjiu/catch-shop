@@ -32,21 +32,70 @@ function slugify(str: string) {
     .replace(/-+/g, "-");
 }
 
+const COLOR_ABBREV: Record<string, string> = {
+  white: "W", black: "B", blue: "BL", navy: "NV", red: "R",
+  green: "G", yellow: "Y", pink: "PK", purple: "PU",
+  grey: "GR", gray: "GR", gold: "GD", silver: "SV",
+};
+
+function colorAbbr(color: string): string {
+  return COLOR_ABBREV[color.toLowerCase().trim()] ?? color.slice(0, 2).toUpperCase();
+}
+
+function skuPrefix(slug: string): string {
+  return slug.split("-").filter(Boolean).slice(0, 3).map((p) => p.toUpperCase()).join("-");
+}
+
+function autoSku(slug: string, size: string, color: string): string {
+  const parts = [skuPrefix(slug), colorAbbr(color), size.toUpperCase()].filter(Boolean);
+  return parts.join("-");
+}
+
+// ─── Size presets ────────────────────────────────────────────────────────────
+
+const SIZE_PRESETS = [
+  { label: "Kids Gi",    sizes: ["M000", "M00", "M0", "M1", "M2", "M3", "M4"] },
+  { label: "Adult Gi",   sizes: ["A0", "A1", "A2", "A3", "A4", "F1", "F2", "F3", "F4"] },
+  { label: "Kids No-Gi", sizes: ["Y-XS", "Y-S", "Y-M", "Y-L"] },
+  { label: "Adult No-Gi",sizes: ["XS", "S", "M", "L", "XL", "XXL"] },
+] as const;
+
 // ─── Variant row editor ──────────────────────────────────────────────────────
 
 interface VariantRowProps {
   variant: Partial<ProductVariant> & { _key: string };
+  productSlug: string;
   onChange: (key: string, updated: Partial<ProductVariant>) => void;
   onRemove: (key: string) => void;
 }
 
-function VariantRow({ variant, onChange, onRemove }: VariantRowProps) {
+function VariantRow({ variant, productSlug, onChange, onRemove }: VariantRowProps) {
+  const currentSku = variant.sku ?? "";
+
+  const handleSizeChange = (newSize: string) => {
+    const prevAuto = autoSku(productSlug, variant.size ?? "", variant.color ?? "");
+    const updates: Partial<ProductVariant> = { size: newSize };
+    if (!currentSku || currentSku === prevAuto) {
+      updates.sku = autoSku(productSlug, newSize, variant.color ?? "");
+    }
+    onChange(variant._key, updates);
+  };
+
+  const handleColorChange = (newColor: string) => {
+    const prevAuto = autoSku(productSlug, variant.size ?? "", variant.color ?? "");
+    const updates: Partial<ProductVariant> = { color: newColor };
+    if (!currentSku || currentSku === prevAuto) {
+      updates.sku = autoSku(productSlug, variant.size ?? "", newColor);
+    }
+    onChange(variant._key, updates);
+  };
+
   return (
     <tr className="border-b border-white/5">
       <td className="py-2 pr-2">
         <Input
           value={variant.size ?? ""}
-          onChange={(e) => onChange(variant._key, { size: e.target.value })}
+          onChange={(e) => handleSizeChange(e.target.value)}
           placeholder="A2"
           className="h-8 border-white/20 bg-white/5 text-white placeholder:text-white/20 text-sm"
         />
@@ -54,7 +103,7 @@ function VariantRow({ variant, onChange, onRemove }: VariantRowProps) {
       <td className="py-2 pr-2">
         <Input
           value={variant.color ?? ""}
-          onChange={(e) => onChange(variant._key, { color: e.target.value })}
+          onChange={(e) => handleColorChange(e.target.value)}
           placeholder="white"
           className="h-8 border-white/20 bg-white/5 text-white placeholder:text-white/20 text-sm"
         />
@@ -74,7 +123,7 @@ function VariantRow({ variant, onChange, onRemove }: VariantRowProps) {
         <Input
           value={variant.sku ?? ""}
           onChange={(e) => onChange(variant._key, { sku: e.target.value })}
-          placeholder="SKU-001"
+          placeholder="AUTO"
           className="h-8 border-white/20 bg-white/5 text-white placeholder:text-white/20 text-sm font-mono"
         />
       </td>
@@ -121,16 +170,37 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
     (product?.product_variants ?? []).map((v) => ({ ...v, _key: v.id }));
 
   const [variants, setVariants] = useState<DraftVariant[]>(initVariants);
+  const [quickColor, setQuickColor] = useState("");
 
   const handleNameEnBlur = () => {
     if (!isEdit && !slug) setSlug(slugify(nameEn));
   };
 
   const addVariant = () => {
+    const key = `new-${Date.now()}`;
     setVariants((prev) => [
       ...prev,
-      { _key: `new-${Date.now()}`, size: "", color: "", stock_quantity: 0, sku: "" },
+      { _key: key, size: "", color: "", stock_quantity: 0, sku: "" },
     ]);
+  };
+
+  const addPreset = (sizes: readonly string[]) => {
+    const color = quickColor.trim() || "white";
+    const existingSizes = new Set(variants.map((v) => `${v.size}|${v.color}`));
+    const newRows: DraftVariant[] = sizes
+      .filter((s) => !existingSizes.has(`${s}|${color}`))
+      .map((size) => ({
+        _key: `new-${Date.now()}-${Math.random()}`,
+        size,
+        color,
+        stock_quantity: 0,
+        sku: autoSku(slug, size, color),
+      }));
+    if (newRows.length === 0) {
+      toast.info("All sizes in this preset already exist.");
+      return;
+    }
+    setVariants((prev) => [...prev, ...newRows]);
   };
 
   const updateVariant = useCallback(
@@ -385,15 +455,42 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
 
           {/* Variants */}
           <div className="space-y-3">
+            <Label className="text-xs text-white/50">Variants (sizes / colors)</Label>
+
+            {/* Quick-add presets */}
+            <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 space-y-2">
+              <p className="text-xs text-white/40 font-medium">Quick add size set</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  value={quickColor}
+                  onChange={(e) => setQuickColor(e.target.value)}
+                  placeholder="Color (e.g. black)"
+                  className="h-8 w-36 border-white/20 bg-white/5 text-white placeholder:text-white/20 text-xs"
+                />
+                {SIZE_PRESETS.map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => addPreset(preset.sizes)}
+                    className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-white/60 hover:bg-white/10 hover:text-white transition-colors"
+                  >
+                    {preset.label}
+                    <span className="ml-1.5 text-white/30">({preset.sizes.length})</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-white/25">Enter a color then click a preset to bulk-add sizes. SKUs are auto-generated.</p>
+            </div>
+
             <div className="flex items-center justify-between">
-              <Label className="text-xs text-white/50">Variants (sizes / colors)</Label>
+              <span className="text-xs text-white/30">{variants.length} variant{variants.length !== 1 ? "s" : ""}</span>
               <button
                 type="button"
                 onClick={addVariant}
                 className="flex items-center gap-1.5 rounded-lg border border-white/20 px-3 py-1 text-xs text-white/60 hover:bg-white/5 hover:text-white transition-colors"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Add variant
+                Add single variant
               </button>
             </div>
 
@@ -405,7 +502,7 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
                       <th className="px-3 py-2 text-left text-xs font-medium text-white/40">Size</th>
                       <th className="px-3 py-2 text-left text-xs font-medium text-white/40">Color</th>
                       <th className="px-3 py-2 text-left text-xs font-medium text-white/40">Stock</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-white/40">SKU</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-white/40">SKU <span className="text-white/20 font-normal">(auto)</span></th>
                       <th className="px-3 py-2" />
                     </tr>
                   </thead>
@@ -414,6 +511,7 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
                       <VariantRow
                         key={v._key}
                         variant={v}
+                        productSlug={slug}
                         onChange={updateVariant}
                         onRemove={removeVariant}
                       />
@@ -423,7 +521,7 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
               </div>
             ) : (
               <div className="rounded-xl border border-dashed border-white/10 py-6 text-center text-sm text-white/30">
-                No variants yet. Click &quot;Add variant&quot; to add sizes and stock.
+                No variants yet. Use quick add above or click &quot;Add single variant&quot;.
               </div>
             )}
           </div>
