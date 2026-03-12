@@ -32,6 +32,7 @@ export interface ProductVariant {
   color: string;
   stock_quantity: number;
   sku: string | null;
+  color_image_url: string | null;
   created_at: string;
   updated_at: string;
 }

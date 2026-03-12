@@ -172,6 +172,33 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
   const [variants, setVariants] = useState<DraftVariant[]>(initVariants);
   const [quickColor, setQuickColor] = useState("");
 
+  // colorImages: map of color → image URL (shared across all variants of same color)
+  const initColorImages = (): Record<string, string> => {
+    const map: Record<string, string> = {};
+    (product?.product_variants ?? []).forEach((v) => {
+      if (v.color && v.color_image_url) map[v.color] = v.color_image_url;
+    });
+    return map;
+  };
+  const [colorImages, setColorImages] = useState<Record<string, string>>(initColorImages);
+  const [uploadingColor, setUploadingColor] = useState<string | null>(null);
+
+  const uniqueColors = [...new Set(variants.map((v) => v.color).filter(Boolean))] as string[];
+
+  const handleColorImageUpload = async (color: string, file: File) => {
+    setUploadingColor(color);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/admin/upload", { method: "POST", body: form });
+      const json = await res.json();
+      if (!res.ok || json.error) { toast.error(json.error ?? "Upload failed."); return; }
+      setColorImages((prev) => ({ ...prev, [color]: json.url }));
+      toast.success(`Image set for "${color}"`);
+    } catch { toast.error("Upload failed."); }
+    finally { setUploadingColor(null); }
+  };
+
   const handleNameEnBlur = () => {
     if (!isEdit && !slug) setSlug(slugify(nameEn));
   };
@@ -285,12 +312,14 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
       }
 
       for (const v of variants) {
+        const variantColor = v.color!.trim();
         const variantData = {
           product_id: productId,
           size: v.size!.trim(),
-          color: v.color!.trim(),
+          color: variantColor,
           stock_quantity: v.stock_quantity ?? 0,
           sku: v.sku?.trim() || null,
+          color_image_url: colorImages[variantColor] ?? null,
         };
         if (v.id) {
           await supabase.from("product_variants").update(variantData).eq("id", v.id);
@@ -450,6 +479,63 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
                   className="border-amber-500/20 bg-white/5 text-white placeholder:text-white/20"
                 />
               </div>
+            </div>
+          )}
+
+          {/* Color Images */}
+          {uniqueColors.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-xs text-white/50">Color Images</Label>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {uniqueColors.map((color) => {
+                  const imgUrl = colorImages[color];
+                  const isUploading = uploadingColor === color;
+                  return (
+                    <div key={color} className="space-y-1.5">
+                      <p className="text-xs text-white/40 capitalize">{color}</p>
+                      <label className={[
+                        "relative flex h-24 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border transition-colors",
+                        imgUrl ? "border-white/20" : "border-dashed border-white/10 hover:border-white/20 hover:bg-white/5",
+                      ].join(" ")}>
+                        {imgUrl ? (
+                          <>
+                            <Image src={imgUrl} alt={color} fill sizes="120px" className="object-cover" />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity">
+                              <span className="text-xs text-white font-medium">Replace</span>
+                            </div>
+                          </>
+                        ) : isUploading ? (
+                          <Loader2 className="h-5 w-5 animate-spin text-white/30" />
+                        ) : (
+                          <>
+                            <Plus className="h-5 w-5 text-white/20" />
+                            <span className="mt-1 text-[10px] text-white/30">Add image</span>
+                          </>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleColorImageUpload(color, file);
+                          }}
+                        />
+                      </label>
+                      {imgUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setColorImages((p) => { const n = {...p}; delete n[color]; return n; })}
+                          className="w-full text-center text-[10px] text-white/30 hover:text-red-400 transition-colors"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-white/25">One image per color — shared across all sizes of that color.</p>
             </div>
           )}
 

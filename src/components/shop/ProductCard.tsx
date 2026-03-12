@@ -4,13 +4,10 @@ import { useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useTranslations, useLocale } from "next-intl";
-import { ShoppingCart, Eye } from "lucide-react";
+import { Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { useCart } from "@/hooks/useCart";
-import { formatTWD } from "@/lib/currency";
 import { Link } from "@/i18n/navigation";
-import { toast } from "sonner";
+import { formatTWD } from "@/lib/currency";
 import type { ProductWithVariants } from "@/lib/supabase/types";
 
 interface ProductCardProps {
@@ -18,44 +15,46 @@ interface ProductCardProps {
   index?: number;
 }
 
+// CSS color approximations for known color names
+const COLOR_CSS: Record<string, string> = {
+  white: "#F8F8F8",
+  black: "#1C1C1C",
+  blue: "#1D4ED8",
+  navy: "#1E3A5F",
+  red: "#DC2626",
+  green: "#16A34A",
+  yellow: "#EAB308",
+  pink: "#EC4899",
+  purple: "#9333EA",
+  grey: "#6B7280",
+  gray: "#6B7280",
+  gold: "#D97706",
+  silver: "#9CA3AF",
+  orange: "#EA580C",
+  brown: "#92400E",
+};
+
+function colorToCss(color: string): string {
+  return COLOR_CSS[color.toLowerCase().trim()] ?? "#6B7280";
+}
+
 export function ProductCard({ product, index = 0 }: ProductCardProps) {
   const t = useTranslations();
   const locale = useLocale();
-  const { addItem } = useCart();
-
   const name = locale === "zh-TW" ? product.name_zh : product.name_en;
-  const sizes = [...new Set(product.product_variants.map((v) => v.size))];
-  const [selectedSize, setSelectedSize] = useState<string>(sizes[0] ?? "");
 
-  const selectedVariant = product.product_variants.find(
-    (v) => v.size === selectedSize
-  );
-  const inStock =
-    product.is_preorder || (selectedVariant?.stock_quantity ?? 0) > 0;
-  const lowStock =
-    !product.is_preorder &&
-    selectedVariant &&
-    selectedVariant.stock_quantity > 0 &&
-    selectedVariant.stock_quantity <= 5;
+  // Unique colors in order of first appearance
+  const colors = [...new Map(
+    product.product_variants.map((v) => [v.color, v])
+  ).values()].map((v) => v.color);
 
-  const handleAddToCart = () => {
-    if (!selectedVariant) return;
-    addItem({
-      variantId: selectedVariant.id,
-      productId: product.id,
-      productSlug: product.slug,
-      nameEn: product.name_en,
-      nameZh: product.name_zh,
-      size: selectedVariant.size,
-      color: selectedVariant.color,
-      imageUrl: product.base_image_url,
-      price: product.price_twd,
-      isPreorder: product.is_preorder,
-    });
-    toast.success(locale === "zh-TW" ? "已加入購物車" : "Added to cart", {
-      description: `${name} — ${selectedVariant.size}`,
-    });
-  };
+  const [selectedColor, setSelectedColor] = useState<string>(colors[0] ?? "");
+
+  // Variants for selected color
+  const colorVariants = product.product_variants.filter((v) => v.color === selectedColor);
+  const colorImage = colorVariants[0]?.color_image_url ?? product.base_image_url;
+  const totalStock = colorVariants.reduce((s, v) => s + v.stock_quantity, 0);
+  const inStock = product.is_preorder || totalStock > 0;
 
   return (
     <motion.div
@@ -66,13 +65,14 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
     >
       {/* Image area */}
       <div className="relative aspect-square overflow-hidden bg-slate-800">
-        {product.base_image_url ? (
+        {colorImage ? (
           <Image
-            src={product.base_image_url}
-            alt={name}
+            key={colorImage}
+            src={colorImage}
+            alt={`${name} — ${selectedColor}`}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-110"
+            className="object-cover transition-all duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
@@ -85,20 +85,15 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
           {product.is_preorder && (
             <Badge variant="preorder">{t("shop.preorderBadge")}</Badge>
           )}
-          {lowStock && (
-            <Badge variant="destructive">
-              {t("shop.lowStock", { count: selectedVariant?.stock_quantity })}
-            </Badge>
-          )}
           {!inStock && !product.is_preorder && (
             <Badge variant="secondary">{t("shop.outOfStock")}</Badge>
           )}
         </div>
 
-        {/* Quick view overlay */}
+        {/* View details overlay */}
         <Link
           href={`/shop/${product.slug}`}
-          className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-all duration-300 opacity-0 group-hover:opacity-100"
+          className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-all duration-300 opacity-0 group-hover:opacity-100"
         >
           <span className="flex items-center gap-2 rounded-full border border-white/50 bg-white/10 px-4 py-2 text-sm text-white backdrop-blur-sm">
             <Eye className="h-4 w-4" />
@@ -116,42 +111,44 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
           </p>
         </div>
 
-        {/* Size selector */}
-        {sizes.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {sizes.map((size) => {
-              const variant = product.product_variants.find((v) => v.size === size);
-              const available = product.is_preorder || (variant?.stock_quantity ?? 0) > 0;
+        {/* Color swatches */}
+        {colors.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            {colors.map((color) => {
+              const variants = product.product_variants.filter((v) => v.color === color);
+              const available = product.is_preorder || variants.some((v) => v.stock_quantity > 0);
+              const isSelected = selectedColor === color;
               return (
                 <button
-                  key={size}
-                  onClick={() => setSelectedSize(size)}
-                  disabled={!available}
+                  key={color}
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); setSelectedColor(color); }}
+                  title={color}
                   className={[
-                    "rounded-md border px-2.5 py-1 text-xs font-medium transition-all",
-                    selectedSize === size
-                      ? "border-white bg-white text-slate-900"
-                      : available
-                      ? "border-white/20 text-white/70 hover:border-white/50"
-                      : "border-white/10 text-white/30 line-through cursor-not-allowed",
+                    "relative h-6 w-6 rounded-full border-2 transition-all duration-200",
+                    isSelected ? "border-white scale-110 shadow-lg shadow-white/20" : "border-white/20 hover:border-white/50",
+                    !available ? "opacity-40" : "",
                   ].join(" ")}
+                  style={{ backgroundColor: colorToCss(color) }}
                 >
-                  {size}
+                  {/* White/light colors need inner ring to be visible */}
+                  {color === "white" && (
+                    <span className="absolute inset-0.5 rounded-full border border-slate-400/30" />
+                  )}
                 </button>
               );
             })}
+            <span className="text-xs text-white/40 capitalize">{selectedColor}</span>
           </div>
         )}
 
-        {/* Add to cart */}
-        <Button
-          onClick={handleAddToCart}
-          disabled={!inStock || !selectedVariant}
-          className="mt-auto w-full gap-2 bg-white text-slate-900 hover:bg-white/90 disabled:opacity-40"
+        {/* View details link */}
+        <Link
+          href={`/shop/${product.slug}`}
+          className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 py-2.5 text-sm font-medium text-white/70 transition-all hover:border-white/50 hover:text-white"
         >
-          <ShoppingCart className="h-4 w-4" />
-          {!inStock ? t("shop.outOfStock") : t("shop.addToCart")}
-        </Button>
+          {t("shop.viewDetails")}
+        </Link>
       </div>
     </motion.div>
   );
