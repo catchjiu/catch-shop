@@ -85,23 +85,28 @@ export interface Database {
         Row: Product;
         Insert: Omit<Product, "id" | "created_at" | "updated_at">;
         Update: Partial<Omit<Product, "id" | "created_at" | "updated_at">>;
+        Relationships: [];
       };
       product_variants: {
         Row: ProductVariant;
         Insert: Omit<ProductVariant, "id" | "created_at" | "updated_at">;
         Update: Partial<Omit<ProductVariant, "id" | "created_at" | "updated_at">>;
+        Relationships: [];
       };
       orders: {
         Row: Order;
         Insert: Omit<Order, "id" | "created_at" | "updated_at">;
         Update: Partial<Omit<Order, "id" | "created_at" | "updated_at">>;
+        Relationships: [];
       };
       order_items: {
         Row: OrderItem;
         Insert: Omit<OrderItem, "id" | "created_at">;
         Update: Partial<Omit<OrderItem, "id" | "created_at">>;
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
     Enums: {
       order_status: OrderStatus;
       payment_method: PaymentMethod;
@@ -112,5 +117,6 @@ export interface Database {
         Returns: void;
       };
     };
+    CompositeTypes: Record<string, never>;
   };
 }
