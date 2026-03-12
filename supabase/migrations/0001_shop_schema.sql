@@ -1,5 +1,5 @@
 -- ============================================================
--- CATCH JIU JITSU — E-Commerce Schema
+-- MATSIDE — E-Commerce Schema
 -- Migration: 0001_shop_schema.sql
 -- ============================================================
 
@@ -266,9 +266,9 @@ CREATE POLICY "Admins manage order items"
 
 INSERT INTO products (slug, name_en, name_zh, description_en, description_zh, price_twd, is_preorder, preorder_note_en, preorder_note_zh) VALUES
 (
-  'catch-bjj-gi-white',
-  'Catch BJJ Gi — White',
-  'Catch 柔術道衣 — 白色',
+  'matside-gi-white',
+  'Matside Gi — White',
+  'Matside 柔術道衣 — 白色',
   'High-performance competition gi made from premium pearl weave cotton. Designed for durability and comfort on the mat.',
   '採用優質珍珠織棉製成的高性能競賽道衣，專為耐用性和舒適性設計。',
   3800,
@@ -278,7 +278,7 @@ INSERT INTO products (slug, name_en, name_zh, description_en, description_zh, pr
 ),
 (
   'catch-bjj-gi-black',
-  'Catch BJJ Gi — Black',
+  'Matside Gi — Black',
   'Catch 柔術道衣 — 黑色',
   'Premium black competition gi with embroidered Catch patches. IBJJF approved.',
   '附有刺繡 Catch 徽章的頂級黑色競賽道衣，符合 IBJJF 規定。',

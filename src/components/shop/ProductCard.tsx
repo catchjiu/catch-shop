@@ -76,7 +76,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
-            <span className="text-5xl font-black text-white/10 select-none">BJJ</span>
+            <span className="text-5xl font-black text-white/10 select-none">MATSIDE</span>
           </div>
         )}
 

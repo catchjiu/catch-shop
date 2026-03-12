@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Catch BJJ Store",
-  description: "Premium Jiu Jitsu gear from Catch Jiu Jitsu",
+  title: "Matside Store",
+  description: "Premium Jiu Jitsu gear from Matside",
 };
 
 export default function RootLayout({

@@ -6,7 +6,7 @@
     "language": "語言"
   },
   "shop": {
-    "title": "Catch BJJ 商店",
+    "title": "Matside 商店",
     "subtitle": "頂級柔術裝備",
     "addToCart": "加入購物車",
     "selectSize": "選擇尺寸",
@@ -78,7 +78,7 @@
       "account": "帳號",
       "accountNumber": "012-345-678901",
       "accountName": "戶名",
-      "accountHolder": "CATCH JIU JITSU 有限公司",
+      "accountHolder": "MATSIDE 有限公司",
       "amount": "匯款金額",
       "note": "請在匯款備註中填入您的訂單編號。"
     },

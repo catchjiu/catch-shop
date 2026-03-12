@@ -18,7 +18,7 @@ export function ShopNav({ onCartOpen }: ShopNavProps) {
     <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         <Link href="/" className="text-xl font-black tracking-tight text-white">
-          CATCH <span className="text-white/40">BJJ</span>
+          MATSIDE
         </Link>
 
         <nav className="hidden sm:flex items-center gap-6">

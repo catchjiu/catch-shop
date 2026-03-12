@@ -1,7 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { InventoryTable } from "./InventoryTable";
 
-export const metadata = { title: "Inventory — Catch BJJ Admin" };
+export const metadata = { title: "Inventory — Matside Admin" };
 
 export default async function InventoryPage() {
   const supabase = await createServiceClient();

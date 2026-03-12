@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     // For NewebPay: build encrypted form and return it
     if (paymentMethod === "newebpay") {
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL!;
-      const itemDesc = items.length > 1 ? `Catch BJJ Order (${items.length} items)` : "Catch BJJ Order";
+      const itemDesc = items.length > 1 ? `Matside Order (${items.length} items)` : "Matside Order";
 
       const newebpayFormData = buildNewebPayForm({
         merchantOrderNo: order.id.replace(/-/g, "").slice(0, 20),

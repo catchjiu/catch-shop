@@ -4,7 +4,7 @@ import Link from "next/link";
 import "../globals.css";
 
 export const metadata: Metadata = {
-  title: "Catch BJJ Admin",
+  title: "Matside Admin",
 };
 
 const navItems = [
@@ -22,7 +22,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <aside className="hidden w-60 flex-shrink-0 flex-col border-r border-white/10 bg-slate-900 lg:flex">
             <div className="flex h-16 items-center border-b border-white/10 px-6">
               <Link href="/en/shop" className="text-lg font-black tracking-tight text-white">
-                CATCH <span className="text-white/40">ADMIN</span>
+                MATSIDE <span className="text-white/40">ADMIN</span>
               </Link>
             </div>
             <nav className="flex-1 space-y-1 p-4">

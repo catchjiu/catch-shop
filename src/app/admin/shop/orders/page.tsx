@@ -1,7 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { OrdersClient } from "./OrdersClient";
 
-export const metadata = { title: "Orders — Catch BJJ Admin" };
+export const metadata = { title: "Orders — Matside Admin" };
 
 export default async function OrdersPage({
   searchParams,

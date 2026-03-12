@@ -1,4 +1,4 @@
-# CATCH JIU JITSU — E-Commerce Module
+# MATSIDE — E-Commerce Module
 
 High-performance e-commerce built with Next.js 15, Supabase, Zustand, and next-intl.
 

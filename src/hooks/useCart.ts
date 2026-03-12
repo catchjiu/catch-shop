@@ -147,7 +147,7 @@ export const useCart = create<CartState>()(
       },
     }),
     {
-      name: "catch-bjj-cart",
+      name: "matside-cart",
       storage: createJSONStorage(() => localStorage),
     }
   )

@@ -88,7 +88,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                           />
                         ) : (
                           <div className="absolute inset-0 flex items-center justify-center text-white/10 text-xs font-bold">
-                            BJJ
+                            MATSIDE
                           </div>
                         )}
                       </div>

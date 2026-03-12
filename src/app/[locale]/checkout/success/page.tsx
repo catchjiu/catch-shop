@@ -52,7 +52,7 @@ export default async function SuccessPage({
             href="/shop"
             className="text-sm text-white/50 hover:text-white transition-colors"
           >
-            CATCH BJJ
+            MATSIDE
           </Link>
         </div>
       </header>

@@ -25,7 +25,7 @@ export default async function CheckoutPage() {
             className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            CATCH BJJ
+            MATSIDE
           </Link>
           <h1 className="mx-auto text-sm font-semibold text-white/70">
             {t("title")}

@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-export const metadata = { title: "Dashboard — Catch BJJ Admin" };
+export const metadata = { title: "Dashboard — Matside Admin" };
 
 export default async function AdminDashboardPage() {
   const supabase = await createServiceClient();

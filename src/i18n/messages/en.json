@@ -6,7 +6,7 @@
     "language": "Language"
   },
   "shop": {
-    "title": "Catch BJJ Store",
+    "title": "Matside Store",
     "subtitle": "Premium Jiu Jitsu Gear",
     "addToCart": "Add to Cart",
     "selectSize": "Select Size",
@@ -78,7 +78,7 @@
       "account": "Account Number",
       "accountNumber": "012-345-678901",
       "accountName": "Account Name",
-      "accountHolder": "Catch Jiu Jitsu Co., Ltd.",
+      "accountHolder": "Matside Co., Ltd.",
       "amount": "Amount to Transfer",
       "note": "Please include your order number in the transfer note."
     },

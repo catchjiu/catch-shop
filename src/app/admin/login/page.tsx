@@ -53,7 +53,7 @@ export default function AdminLoginPage() {
         {/* Logo */}
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-black tracking-tight text-white">
-            CATCH <span className="text-white/30">BJJ</span>
+            MATSIDE
           </h1>
           <p className="mt-1 text-sm text-white/40">Admin Dashboard</p>
         </div>
