@@ -158,26 +158,10 @@ BEGIN
 END;
 $$;
 
--- ============================================================
--- GUEST-TO-MEMBER ORDER LINKING TRIGGER
--- When a new user signs up and their email matches guest orders,
--- link those orders to the new user_id.
--- ============================================================
-
-CREATE OR REPLACE FUNCTION link_guest_orders_to_user()
-RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
-  UPDATE orders
-  SET user_id = NEW.id
-  WHERE guest_email = NEW.email
-    AND user_id IS NULL;
-  RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER trg_link_guest_orders
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION link_guest_orders_to_user();
+-- NOTE: Guest-to-member order linking is handled by the API route
+-- /api/auth/link-orders which is called after Supabase signUp succeeds.
+-- A trigger on auth.users is not used because Supabase's hosted platform
+-- blocks user creation when auth.users triggers throw errors.
 
 -- ============================================================
 -- ROW LEVEL SECURITY

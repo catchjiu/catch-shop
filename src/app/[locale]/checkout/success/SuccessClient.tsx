@@ -51,6 +51,16 @@ export function SuccessClient({ order, isGuest, guestEmail, locale }: SuccessCli
         },
       });
       if (error) throw error;
+
+      // Link any guest orders to the new account via API route
+      if (data.user) {
+        await fetch("/api/auth/link-orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: data.user.id, email: guestEmail }),
+        });
+      }
+
       setAccountCreated(true);
       toast.success(
         locale === "zh-TW"
