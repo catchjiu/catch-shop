@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useCallback } from "react";
+import { Fragment, useState, useTransition, useCallback } from "react";
 import Image from "next/image";
 import {
   Plus, Pencil, Trash2, Package, X, Save, ChevronDown, ChevronUp,
@@ -592,9 +592,8 @@ export function ProductsClient({ products: initialProducts }: ProductsClientProp
                 const hasLowStock = product.product_variants.some((v) => v.stock_quantity < 5);
 
                 return (
-                  <>
+                  <Fragment key={product.id}>
                     <tr
-                      key={product.id}
                       className="border-b border-white/5 hover:bg-white/[0.02] transition-colors"
                     >
                       {/* Product */}
@@ -692,7 +691,7 @@ export function ProductsClient({ products: initialProducts }: ProductsClientProp
 
                     {/* Expanded variants */}
                     {isExpanded && (
-                      <tr key={`${product.id}-variants`} className="border-b border-white/5 bg-white/[0.01]">
+                      <tr className="border-b border-white/5 bg-white/[0.01]">
                         <td colSpan={6} className="px-6 pb-4 pt-2">
                           <div className="rounded-xl border border-white/10 overflow-hidden">
                             <table className="w-full text-xs">
@@ -726,7 +725,7 @@ export function ProductsClient({ products: initialProducts }: ProductsClientProp
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>

@@ -5,7 +5,7 @@ export const metadata = { title: "Products — Matside Admin" };
 export const dynamic = "force-dynamic";
 
 export default async function ProductsPage() {
-  const supabase = createServiceClient();
+  const supabase = await createServiceClient();
 
   const { data: products } = await supabase
     .from("products")
@@ -20,7 +20,8 @@ export default async function ProductsPage() {
           Add, edit, and manage your product catalogue and variants.
         </p>
       </div>
-      <ProductsClient products={(products ?? []) as Parameters<typeof ProductsClient>[0]["products"]} />
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+      <ProductsClient products={(products ?? []) as any} />
     </div>
   );
 }
