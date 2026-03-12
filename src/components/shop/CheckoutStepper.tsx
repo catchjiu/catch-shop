@@ -56,8 +56,9 @@ export function CheckoutStepper() {
     country: "TW",
   });
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("manual_bank_transfer");
+  const [bankLastFive, setBankLastFive] = useState("");
   const [preorderConfirmed, setPreorderConfirmed] = useState(false);
-  const [errors, setErrors] = useState<Partial<ShippingData & { preorder: boolean }>>({});
+  const [errors, setErrors] = useState<Partial<ShippingData & { preorder: boolean; bankLastFive: string }>>({});
 
   const totalAmount = getTotalAmount();
   const hasPreorder = hasPreorderItems();
@@ -87,7 +88,16 @@ export function CheckoutStepper() {
     if (validateShipping()) navigateStep("payment");
   };
 
-  const handlePaymentNext = () => navigateStep("review");
+  const handlePaymentNext = () => {
+    if (paymentMethod === "manual_bank_transfer") {
+      if (!bankLastFive.trim() || !/^\d{5}$/.test(bankLastFive)) {
+        setErrors((e) => ({ ...e, bankLastFive: locale === "zh-TW" ? "請輸入帳號末五碼（數字）" : "Please enter the last 5 digits of your account number." }));
+        return;
+      }
+    }
+    setErrors((e) => { const { bankLastFive: _, ...rest } = e; return rest; });
+    navigateStep("review");
+  };
 
   const handleSubmit = async () => {
     if (hasPreorder && !preorderConfirmed) {
@@ -103,6 +113,7 @@ export function CheckoutStepper() {
         body: JSON.stringify({
           shipping,
           paymentMethod,
+          bankLastFive: paymentMethod === "manual_bank_transfer" ? bankLastFive : undefined,
           items: items.map((i) => ({
             variantId: i.variantId,
             quantity: i.quantity,
@@ -202,7 +213,10 @@ export function CheckoutStepper() {
             {currentStep === "payment" && (
               <PaymentStep
                 value={paymentMethod}
-                onChange={setPaymentMethod}
+                onChange={(v) => { setPaymentMethod(v); setBankLastFive(""); setErrors((e) => { const { bankLastFive: _, ...rest } = e; return rest; }); }}
+                bankLastFive={bankLastFive}
+                onBankLastFiveChange={setBankLastFive}
+                bankLastFiveError={errors.bankLastFive}
                 onBack={() => navigateStep("shipping")}
                 onNext={handlePaymentNext}
                 t={t}
@@ -213,6 +227,7 @@ export function CheckoutStepper() {
               <ReviewStep
                 shipping={shipping}
                 paymentMethod={paymentMethod}
+                bankLastFive={bankLastFive}
                 items={items}
                 totalAmount={totalAmount}
                 hasPreorder={hasPreorder}
@@ -320,12 +335,16 @@ function ShippingStep({ data, errors, onChange, onNext, t }: ShippingStepProps) 
 interface PaymentStepProps {
   value: PaymentMethod;
   onChange: (v: PaymentMethod) => void;
+  bankLastFive: string;
+  onBankLastFiveChange: (v: string) => void;
+  bankLastFiveError?: string;
   onBack: () => void;
   onNext: () => void;
   t: ReturnType<typeof useTranslations<"checkout">>;
 }
 
-function PaymentStep({ value, onChange, onBack, onNext, t }: PaymentStepProps) {
+function PaymentStep({ value, onChange, bankLastFive, onBankLastFiveChange, bankLastFiveError, onBack, onNext, t }: PaymentStepProps) {
+  const locale = useLocale();
   return (
     <div className="space-y-5">
       <h2 className="text-xl font-bold text-white">{t("payment.title")}</h2>
@@ -366,6 +385,31 @@ function PaymentStep({ value, onChange, onBack, onNext, t }: PaymentStepProps) {
           </label>
         ))}
       </RadioGroup>
+
+      {/* Last 5 digits field — only shown for bank transfer */}
+      {value === "manual_bank_transfer" && (
+        <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 space-y-3">
+          <p className="text-sm text-blue-300/80">
+            {locale === "zh-TW"
+              ? "請輸入您付款帳號的末五碼，方便我們核對款項。"
+              : "Enter the last 5 digits of the bank account you'll transfer from so we can match your payment."}
+          </p>
+          <FormField
+            label={locale === "zh-TW" ? "帳號末五碼" : "Last 5 digits of your account"}
+            error={bankLastFiveError}
+          >
+            <Input
+              value={bankLastFive}
+              onChange={(e) => onBankLastFiveChange(e.target.value.replace(/\D/g, "").slice(0, 5))}
+              maxLength={5}
+              inputMode="numeric"
+              placeholder="12345"
+              className="border-white/20 bg-white/5 text-white placeholder:text-white/20 tracking-widest text-lg w-36 font-mono"
+            />
+          </FormField>
+        </div>
+      )}
+
       <div className="flex gap-3">
         <Button
           variant="outline"
@@ -388,6 +432,7 @@ function PaymentStep({ value, onChange, onBack, onNext, t }: PaymentStepProps) {
 interface ReviewStepProps {
   shipping: ShippingData;
   paymentMethod: PaymentMethod;
+  bankLastFive: string;
   items: ReturnType<typeof useCart>["items"] extends () => infer R ? R : never[];
   totalAmount: number;
   hasPreorder: boolean;
@@ -404,6 +449,7 @@ interface ReviewStepProps {
 function ReviewStep({
   shipping,
   paymentMethod,
+  bankLastFive,
   items,
   totalAmount,
   hasPreorder,
@@ -422,12 +468,18 @@ function ReviewStep({
       <h2 className="text-xl font-bold text-white">{t("review.title")}</h2>
 
       {/* Shipping summary */}
-      <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm">
+      <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm space-y-1">
         <p className="font-medium text-white">{shipping.fullName}</p>
         <p className="text-white/60">{shipping.email}</p>
         <p className="text-white/60">
           {shipping.address}, {shipping.city} {shipping.zip}
         </p>
+        {paymentMethod === "manual_bank_transfer" && bankLastFive && (
+          <p className="mt-2 pt-2 border-t border-white/10 text-white/50">
+            {locale === "zh-TW" ? "帳號末五碼" : "Account last 5 digits"}:{" "}
+            <span className="font-mono font-semibold text-white/80 tracking-widest">{bankLastFive}</span>
+          </p>
+        )}
       </div>
 
       {/* Items */}

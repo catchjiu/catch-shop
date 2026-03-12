@@ -13,7 +13,7 @@ export default async function OrdersPage({
 
   let query = supabase
     .from("orders")
-    .select("id, created_at, status, payment_method, total_amount, is_preorder_order, shipping_name, shipping_email, guest_email, user_id")
+    .select("id, created_at, status, payment_method, payment_ref, total_amount, is_preorder_order, shipping_name, shipping_email, guest_email, user_id")
     .order("created_at", { ascending: false });
 
   if (filter === "preorder") {

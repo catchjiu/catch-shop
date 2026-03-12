@@ -22,6 +22,7 @@ interface Order {
   created_at: string;
   status: OrderStatus;
   payment_method: string;
+  payment_ref: string | null;
   total_amount: number;
   is_preorder_order: boolean;
   shipping_name: string;
@@ -165,8 +166,13 @@ export function OrdersClient({ orders: initialOrders, currentFilter }: OrdersCli
                       <span className="text-xs text-white/30">Standard</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs text-white/50 capitalize">
-                    {order.payment_method.replace(/_/g, " ")}
+                  <td className="px-4 py-3 text-xs text-white/50">
+                    <span className="capitalize">{order.payment_method.replace(/_/g, " ")}</span>
+                    {order.payment_ref?.startsWith("bank_last5:") && (
+                      <span className="ml-1.5 font-mono text-white/70 bg-white/5 border border-white/10 rounded px-1.5 py-0.5">
+                        …{order.payment_ref.replace("bank_last5:", "")}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right font-semibold text-white">
                     {formatTWD(order.total_amount, "en")}

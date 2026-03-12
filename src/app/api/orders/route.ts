@@ -20,6 +20,7 @@ interface OrderRequestBody {
     country: string;
   };
   paymentMethod: PaymentMethod;
+  bankLastFive?: string;
   items: OrderItem[];
   totalAmount: number;
   isPreorderOrder: boolean;
@@ -29,7 +30,7 @@ interface OrderRequestBody {
 export async function POST(request: NextRequest) {
   try {
     const body: OrderRequestBody = await request.json();
-    const { shipping, paymentMethod, items, totalAmount, isPreorderOrder } = body;
+    const { shipping, paymentMethod, bankLastFive, items, totalAmount, isPreorderOrder } = body;
 
     if (!items || items.length === 0) {
       return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
@@ -87,6 +88,7 @@ export async function POST(request: NextRequest) {
         total_amount: totalAmount,
         status: "pending_payment",
         payment_method: paymentMethod,
+        payment_ref: bankLastFive ? `bank_last5:${bankLastFive}` : null,
         is_preorder_order: isPreorderOrder,
       })
       .select()
