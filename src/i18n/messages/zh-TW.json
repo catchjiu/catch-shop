@@ -1,0 +1,129 @@
+{
+  "nav": {
+    "shop": "商店",
+    "cart": "購物車",
+    "admin": "管理",
+    "language": "語言"
+  },
+  "shop": {
+    "title": "Catch BJJ 商店",
+    "subtitle": "頂級柔術裝備",
+    "addToCart": "加入購物車",
+    "selectSize": "選擇尺寸",
+    "selectColor": "選擇顏色",
+    "outOfStock": "售罄",
+    "preorderBadge": "預購",
+    "inStock": "有貨",
+    "lowStock": "僅剩 {count} 件",
+    "viewDetails": "查看詳情",
+    "backToShop": "返回商店",
+    "noProducts": "目前沒有商品。"
+  },
+  "cart": {
+    "title": "購物車",
+    "empty": "您的購物車是空的。",
+    "startShopping": "開始購物",
+    "subtotal": "小計",
+    "checkout": "前往結帳",
+    "remove": "刪除",
+    "quantity": "數量",
+    "stockWarning": "庫存僅剩 {available} 件，數量已自動調整。",
+    "itemUnavailable": "此商品已無法購買。"
+  },
+  "checkout": {
+    "title": "結帳",
+    "steps": {
+      "shipping": "運送資訊",
+      "payment": "付款方式",
+      "review": "確認訂單"
+    },
+    "shipping": {
+      "fullName": "姓名",
+      "email": "電子郵件",
+      "phone": "聯絡電話",
+      "address": "地址",
+      "city": "城市",
+      "zip": "郵遞區號",
+      "country": "國家"
+    },
+    "payment": {
+      "title": "選擇付款方式",
+      "bankTransfer": "銀行匯款",
+      "bankTransferDesc": "匯款至我們的銀行帳戶，確認收款後（1-2個工作天）訂單即成立。",
+      "newebpay": "信用卡（藍新金流）",
+      "newebpayDesc": "透過藍新金流安全付款，支援 Visa、Mastercard、JCB。"
+    },
+    "review": {
+      "title": "訂單確認",
+      "orderSummary": "訂單摘要",
+      "preorderConfirm": "我了解此為預購商品，並同意預購條款。預計 4-6 週後出貨。",
+      "placeOrder": "確認下單",
+      "total": "總計",
+      "items": "商品"
+    },
+    "errors": {
+      "required": "此欄位為必填。",
+      "invalidEmail": "請輸入有效的電子郵件地址。",
+      "preorderRequired": "請確認預購條款才能繼續。"
+    }
+  },
+  "success": {
+    "title": "訂單已確認！",
+    "subtitle": "感謝您的購買。",
+    "orderNumber": "訂單編號",
+    "bankDetails": {
+      "title": "銀行匯款資訊",
+      "bank": "銀行",
+      "bankName": "台北富邦商業銀行",
+      "account": "帳號",
+      "accountNumber": "012-345-678901",
+      "accountName": "戶名",
+      "accountHolder": "CATCH JIU JITSU 有限公司",
+      "amount": "匯款金額",
+      "note": "請在匯款備註中填入您的訂單編號。"
+    },
+    "newebpay": {
+      "redirecting": "正在跳轉至藍新金流安全付款頁面..."
+    },
+    "createAccount": {
+      "title": "儲存您的訂單記錄",
+      "subtitle": "建立免費帳戶以追蹤訂單，下次結帳更快速。",
+      "cta": "建立帳戶",
+      "password": "設定密碼",
+      "submit": "建立帳戶並關聯訂單"
+    },
+    "continueShopping": "繼續購物"
+  },
+  "admin": {
+    "dashboard": "控制台",
+    "inventory": "庫存管理",
+    "orders": "訂單管理",
+    "analytics": "銷售分析",
+    "revenue": "總營收",
+    "topProducts": "熱銷商品",
+    "memberVsGuest": "會員 vs 訪客",
+    "lowStockAlert": "低庫存商品",
+    "updateStock": "更新庫存",
+    "orderStatus": {
+      "pending_payment": "待付款",
+      "processing": "處理中",
+      "shipped": "已出貨",
+      "ready_for_pickup": "可取貨",
+      "completed": "已完成",
+      "cancelled": "已取消"
+    },
+    "filters": {
+      "all": "全部訂單",
+      "preorder": "僅預購",
+      "pending": "待處理",
+      "completed": "已完成"
+    }
+  },
+  "common": {
+    "save": "儲存",
+    "cancel": "取消",
+    "loading": "載入中...",
+    "error": "發生錯誤，請重試。",
+    "close": "關閉"
+  }
+}

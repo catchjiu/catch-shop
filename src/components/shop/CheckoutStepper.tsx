@@ -1,0 +1,524 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "@/i18n/navigation";
+import { useTranslations, useLocale } from "next-intl";
+import { motion, AnimatePresence } from "framer-motion";
+import { Check, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Separator } from "@/components/ui/separator";
+import { useCart } from "@/hooks/useCart";
+import { formatTWD } from "@/lib/currency";
+import { toast } from "sonner";
+import type { PaymentMethod } from "@/lib/supabase/types";
+
+type Step = "shipping" | "payment" | "review";
+
+interface ShippingData {
+  fullName: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  zip: string;
+  country: string;
+}
+
+const STEPS: Step[] = ["shipping", "payment", "review"];
+
+const stepVariants = {
+  enter: (dir: number) => ({ x: dir > 0 ? 60 : -60, opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (dir: number) => ({ x: dir > 0 ? -60 : 60, opacity: 0 }),
+};
+
+export function CheckoutStepper() {
+  const t = useTranslations("checkout");
+  const locale = useLocale();
+  const router = useRouter();
+  const { items, getTotalAmount, hasPreorderItems, clearCart } = useCart();
+
+  const [currentStep, setCurrentStep] = useState<Step>("shipping");
+  const [direction, setDirection] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [shipping, setShipping] = useState<ShippingData>({
+    fullName: "",
+    email: "",
+    phone: "",
+    address: "",
+    city: "",
+    zip: "",
+    country: "TW",
+  });
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("manual_bank_transfer");
+  const [preorderConfirmed, setPreorderConfirmed] = useState(false);
+  const [errors, setErrors] = useState<Partial<ShippingData & { preorder: boolean }>>({});
+
+  const totalAmount = getTotalAmount();
+  const hasPreorder = hasPreorderItems();
+
+  const stepIndex = STEPS.indexOf(currentStep);
+
+  const navigateStep = (next: Step) => {
+    setDirection(STEPS.indexOf(next) > stepIndex ? 1 : -1);
+    setCurrentStep(next);
+  };
+
+  const validateShipping = (): boolean => {
+    const newErrors: Partial<ShippingData> = {};
+    if (!shipping.fullName.trim()) newErrors.fullName = t("errors.required");
+    if (!shipping.email.trim()) {
+      newErrors.email = t("errors.required");
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shipping.email)) {
+      newErrors.email = t("errors.invalidEmail");
+    }
+    if (!shipping.address.trim()) newErrors.address = t("errors.required");
+    if (!shipping.city.trim()) newErrors.city = t("errors.required");
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleShippingNext = () => {
+    if (validateShipping()) navigateStep("payment");
+  };
+
+  const handlePaymentNext = () => navigateStep("review");
+
+  const handleSubmit = async () => {
+    if (hasPreorder && !preorderConfirmed) {
+      setErrors((e) => ({ ...e, preorder: true }));
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          shipping,
+          paymentMethod,
+          items: items.map((i) => ({
+            variantId: i.variantId,
+            quantity: i.quantity,
+            price: i.price,
+          })),
+          totalAmount,
+          isPreorderOrder: hasPreorder,
+          locale,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "Order failed");
+      }
+
+      const data = await res.json();
+
+      if (paymentMethod === "newebpay" && data.newebpayForm) {
+        // Submit NewebPay form
+        const formContainer = document.createElement("div");
+        formContainer.innerHTML = data.newebpayForm;
+        document.body.appendChild(formContainer);
+        const form = formContainer.querySelector("form") as HTMLFormElement;
+        if (form) form.submit();
+        return;
+      }
+
+      clearCart();
+      router.push(`/checkout/success?orderId=${data.orderId}`);
+    } catch (err) {
+      toast.error(t("errors.required"), {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-2xl">
+      {/* Step indicator */}
+      <div className="mb-10 flex items-center justify-center gap-0">
+        {STEPS.map((step, idx) => (
+          <div key={step} className="flex items-center">
+            <div
+              className={[
+                "flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-semibold transition-all",
+                idx < stepIndex
+                  ? "border-white bg-white text-slate-900"
+                  : idx === stepIndex
+                  ? "border-white bg-transparent text-white"
+                  : "border-white/20 bg-transparent text-white/30",
+              ].join(" ")}
+            >
+              {idx < stepIndex ? <Check className="h-4 w-4" /> : idx + 1}
+            </div>
+            <span
+              className={[
+                "ml-2 text-sm font-medium",
+                idx === stepIndex ? "text-white" : "text-white/40",
+              ].join(" ")}
+            >
+              {t(`steps.${step}`)}
+            </span>
+            {idx < STEPS.length - 1 && (
+              <ChevronRight className="mx-3 h-4 w-4 text-white/20" />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Step content */}
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 sm:p-8 backdrop-blur-sm min-h-[360px]">
+        <AnimatePresence mode="wait" custom={direction}>
+          <motion.div
+            key={currentStep}
+            custom={direction}
+            variants={stepVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+          >
+            {currentStep === "shipping" && (
+              <ShippingStep
+                data={shipping}
+                errors={errors}
+                onChange={(field, val) =>
+                  setShipping((s) => ({ ...s, [field]: val }))
+                }
+                onNext={handleShippingNext}
+                t={t}
+              />
+            )}
+
+            {currentStep === "payment" && (
+              <PaymentStep
+                value={paymentMethod}
+                onChange={setPaymentMethod}
+                onBack={() => navigateStep("shipping")}
+                onNext={handlePaymentNext}
+                t={t}
+              />
+            )}
+
+            {currentStep === "review" && (
+              <ReviewStep
+                shipping={shipping}
+                paymentMethod={paymentMethod}
+                items={items}
+                totalAmount={totalAmount}
+                hasPreorder={hasPreorder}
+                preorderConfirmed={preorderConfirmed}
+                setPreorderConfirmed={setPreorderConfirmed}
+                preorderError={errors.preorder}
+                onBack={() => navigateStep("payment")}
+                onSubmit={handleSubmit}
+                isSubmitting={isSubmitting}
+                locale={locale}
+                t={t}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+interface ShippingStepProps {
+  data: ShippingData;
+  errors: Partial<ShippingData>;
+  onChange: (field: keyof ShippingData, value: string) => void;
+  onNext: () => void;
+  t: ReturnType<typeof useTranslations<"checkout">>;
+}
+
+function ShippingStep({ data, errors, onChange, onNext, t }: ShippingStepProps) {
+  return (
+    <div className="space-y-5">
+      <h2 className="text-xl font-bold text-white">{t("steps.shipping")}</h2>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField
+          label={t("shipping.fullName")}
+          error={errors.fullName}
+          className="sm:col-span-2"
+        >
+          <Input
+            value={data.fullName}
+            onChange={(e) => onChange("fullName", e.target.value)}
+            className="border-white/20 bg-white/5 text-white placeholder:text-white/30"
+            placeholder="Chen Wei-Lin"
+          />
+        </FormField>
+        <FormField label={t("shipping.email")} error={errors.email}>
+          <Input
+            type="email"
+            value={data.email}
+            onChange={(e) => onChange("email", e.target.value)}
+            className="border-white/20 bg-white/5 text-white placeholder:text-white/30"
+            placeholder="you@email.com"
+          />
+        </FormField>
+        <FormField label={t("shipping.phone")}>
+          <Input
+            type="tel"
+            value={data.phone}
+            onChange={(e) => onChange("phone", e.target.value)}
+            className="border-white/20 bg-white/5 text-white placeholder:text-white/30"
+            placeholder="+886 912 345 678"
+          />
+        </FormField>
+        <FormField
+          label={t("shipping.address")}
+          error={errors.address}
+          className="sm:col-span-2"
+        >
+          <Input
+            value={data.address}
+            onChange={(e) => onChange("address", e.target.value)}
+            className="border-white/20 bg-white/5 text-white placeholder:text-white/30"
+            placeholder="123 Jianguo North Road, Section 2"
+          />
+        </FormField>
+        <FormField label={t("shipping.city")} error={errors.city}>
+          <Input
+            value={data.city}
+            onChange={(e) => onChange("city", e.target.value)}
+            className="border-white/20 bg-white/5 text-white placeholder:text-white/30"
+            placeholder="Taipei City"
+          />
+        </FormField>
+        <FormField label={t("shipping.zip")}>
+          <Input
+            value={data.zip}
+            onChange={(e) => onChange("zip", e.target.value)}
+            className="border-white/20 bg-white/5 text-white placeholder:text-white/30"
+            placeholder="10491"
+          />
+        </FormField>
+      </div>
+      <Button
+        onClick={onNext}
+        className="w-full bg-white text-slate-900 hover:bg-white/90 font-semibold"
+      >
+        {t("steps.payment")} →
+      </Button>
+    </div>
+  );
+}
+
+interface PaymentStepProps {
+  value: PaymentMethod;
+  onChange: (v: PaymentMethod) => void;
+  onBack: () => void;
+  onNext: () => void;
+  t: ReturnType<typeof useTranslations<"checkout">>;
+}
+
+function PaymentStep({ value, onChange, onBack, onNext, t }: PaymentStepProps) {
+  return (
+    <div className="space-y-5">
+      <h2 className="text-xl font-bold text-white">{t("payment.title")}</h2>
+      <RadioGroup
+        value={value}
+        onValueChange={(v) => onChange(v as PaymentMethod)}
+        className="space-y-3"
+      >
+        {(
+          [
+            {
+              id: "manual_bank_transfer" as PaymentMethod,
+              title: t("payment.bankTransfer"),
+              desc: t("payment.bankTransferDesc"),
+            },
+            {
+              id: "newebpay" as PaymentMethod,
+              title: t("payment.newebpay"),
+              desc: t("payment.newebpayDesc"),
+            },
+          ] as const
+        ).map((opt) => (
+          <label
+            key={opt.id}
+            htmlFor={opt.id}
+            className={[
+              "flex cursor-pointer items-start gap-4 rounded-xl border p-4 transition-all",
+              value === opt.id
+                ? "border-white/40 bg-white/10"
+                : "border-white/10 hover:border-white/20",
+            ].join(" ")}
+          >
+            <RadioGroupItem value={opt.id} id={opt.id} className="mt-0.5" />
+            <div>
+              <p className="font-medium text-white">{opt.title}</p>
+              <p className="mt-1 text-sm text-white/50">{opt.desc}</p>
+            </div>
+          </label>
+        ))}
+      </RadioGroup>
+      <div className="flex gap-3">
+        <Button
+          variant="outline"
+          onClick={onBack}
+          className="flex-1 border-white/20 text-white/70 hover:border-white/40 hover:text-white"
+        >
+          ← {t("steps.shipping")}
+        </Button>
+        <Button
+          onClick={onNext}
+          className="flex-1 bg-white text-slate-900 hover:bg-white/90 font-semibold"
+        >
+          {t("steps.review")} →
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+interface ReviewStepProps {
+  shipping: ShippingData;
+  paymentMethod: PaymentMethod;
+  items: ReturnType<typeof useCart>["items"] extends () => infer R ? R : never[];
+  totalAmount: number;
+  hasPreorder: boolean;
+  preorderConfirmed: boolean;
+  setPreorderConfirmed: (v: boolean) => void;
+  preorderError: boolean | undefined;
+  onBack: () => void;
+  onSubmit: () => void;
+  isSubmitting: boolean;
+  locale: string;
+  t: ReturnType<typeof useTranslations<"checkout">>;
+}
+
+function ReviewStep({
+  shipping,
+  paymentMethod,
+  items,
+  totalAmount,
+  hasPreorder,
+  preorderConfirmed,
+  setPreorderConfirmed,
+  preorderError,
+  onBack,
+  onSubmit,
+  isSubmitting,
+  locale,
+  t,
+}: ReviewStepProps) {
+  const tCommon = useTranslations("common");
+  return (
+    <div className="space-y-5">
+      <h2 className="text-xl font-bold text-white">{t("review.title")}</h2>
+
+      {/* Shipping summary */}
+      <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm">
+        <p className="font-medium text-white">{shipping.fullName}</p>
+        <p className="text-white/60">{shipping.email}</p>
+        <p className="text-white/60">
+          {shipping.address}, {shipping.city} {shipping.zip}
+        </p>
+      </div>
+
+      {/* Items */}
+      <div className="space-y-2">
+        {items.map((item) => {
+          const name = locale === "zh-TW" ? item.nameZh : item.nameEn;
+          return (
+            <div key={item.variantId} className="flex justify-between text-sm">
+              <span className="text-white/70">
+                {name} × {item.quantity} ({item.size})
+              </span>
+              <span className="text-white">
+                {formatTWD(item.price * item.quantity, locale)}
+              </span>
+            </div>
+          );
+        })}
+        <Separator className="my-2 bg-white/10" />
+        <div className="flex justify-between font-bold">
+          <span className="text-white">{t("review.total")}</span>
+          <span className="text-lg text-white">{formatTWD(totalAmount, locale)}</span>
+        </div>
+      </div>
+
+      {/* Preorder confirmation */}
+      {hasPreorder && (
+        <div
+          className={[
+            "rounded-xl border p-4",
+            preorderError ? "border-red-500/50 bg-red-500/10" : "border-amber-500/30 bg-amber-500/10",
+          ].join(" ")}
+        >
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="preorder-confirm"
+              checked={preorderConfirmed}
+              onCheckedChange={(v) => setPreorderConfirmed(Boolean(v))}
+              className="mt-0.5"
+            />
+            <label
+              htmlFor="preorder-confirm"
+              className="cursor-pointer text-sm text-amber-300"
+            >
+              {t("review.preorderConfirm")}
+            </label>
+          </div>
+          {preorderError && (
+            <p className="mt-2 text-xs text-red-400">{t("errors.preorderRequired")}</p>
+          )}
+        </div>
+      )}
+
+      <div className="flex gap-3">
+        <Button
+          variant="outline"
+          onClick={onBack}
+          disabled={isSubmitting}
+          className="flex-1 border-white/20 text-white/70 hover:border-white/40 hover:text-white"
+        >
+          ← {t("steps.payment")}
+        </Button>
+        <Button
+          onClick={onSubmit}
+          disabled={isSubmitting}
+          className="flex-1 bg-white text-slate-900 hover:bg-white/90 font-semibold"
+        >
+          {isSubmitting ? tCommon("loading") : t("review.placeOrder")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function FormField({
+  label,
+  error,
+  children,
+  className,
+}: {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <Label className="mb-1.5 block text-xs font-medium text-white/60">{label}</Label>
+      {children}
+      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+    </div>
+  );
+}

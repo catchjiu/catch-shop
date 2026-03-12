@@ -1,0 +1,129 @@
+{
+  "nav": {
+    "shop": "Shop",
+    "cart": "Cart",
+    "admin": "Admin",
+    "language": "Language"
+  },
+  "shop": {
+    "title": "Catch BJJ Store",
+    "subtitle": "Premium Jiu Jitsu Gear",
+    "addToCart": "Add to Cart",
+    "selectSize": "Select Size",
+    "selectColor": "Select Color",
+    "outOfStock": "Out of Stock",
+    "preorderBadge": "Preorder",
+    "inStock": "In Stock",
+    "lowStock": "Only {count} left",
+    "viewDetails": "View Details",
+    "backToShop": "Back to Shop",
+    "noProducts": "No products available."
+  },
+  "cart": {
+    "title": "Your Cart",
+    "empty": "Your cart is empty.",
+    "startShopping": "Start Shopping",
+    "subtotal": "Subtotal",
+    "checkout": "Proceed to Checkout",
+    "remove": "Remove",
+    "quantity": "Qty",
+    "stockWarning": "Only {available} left in stock. Quantity adjusted.",
+    "itemUnavailable": "This item is no longer available."
+  },
+  "checkout": {
+    "title": "Checkout",
+    "steps": {
+      "shipping": "Shipping",
+      "payment": "Payment",
+      "review": "Review"
+    },
+    "shipping": {
+      "fullName": "Full Name",
+      "email": "Email Address",
+      "phone": "Phone Number",
+      "address": "Street Address",
+      "city": "City",
+      "zip": "ZIP / Postal Code",
+      "country": "Country"
+    },
+    "payment": {
+      "title": "Select Payment Method",
+      "bankTransfer": "Manual Bank Transfer",
+      "bankTransferDesc": "Transfer to our bank account. Order confirmed after payment verification (1–2 business days).",
+      "newebpay": "Credit Card via NewebPay",
+      "newebpayDesc": "Secure online payment powered by NewebPay. Visa, Mastercard, JCB accepted."
+    },
+    "review": {
+      "title": "Order Review",
+      "orderSummary": "Order Summary",
+      "preorderConfirm": "I understand this is a preorder item and agree to the preorder terms. Delivery estimated in 4–6 weeks.",
+      "placeOrder": "Place Order",
+      "total": "Total",
+      "items": "Items"
+    },
+    "errors": {
+      "required": "This field is required.",
+      "invalidEmail": "Please enter a valid email address.",
+      "preorderRequired": "Please confirm the preorder terms to continue."
+    }
+  },
+  "success": {
+    "title": "Order Confirmed!",
+    "subtitle": "Thank you for your order.",
+    "orderNumber": "Order Number",
+    "bankDetails": {
+      "title": "Bank Transfer Details",
+      "bank": "Bank",
+      "bankName": "Taipei Fubon Commercial Bank",
+      "account": "Account Number",
+      "accountNumber": "012-345-678901",
+      "accountName": "Account Name",
+      "accountHolder": "Catch Jiu Jitsu Co., Ltd.",
+      "amount": "Amount to Transfer",
+      "note": "Please include your order number in the transfer note."
+    },
+    "newebpay": {
+      "redirecting": "Redirecting to NewebPay secure payment..."
+    },
+    "createAccount": {
+      "title": "Save your order history",
+      "subtitle": "Create a free account to track your orders and enjoy faster checkout next time.",
+      "cta": "Create Account",
+      "password": "Set a Password",
+      "submit": "Create Account & Link Order"
+    },
+    "continueShopping": "Continue Shopping"
+  },
+  "admin": {
+    "dashboard": "Dashboard",
+    "inventory": "Inventory",
+    "orders": "Orders",
+    "analytics": "Analytics",
+    "revenue": "Total Revenue",
+    "topProducts": "Top Products",
+    "memberVsGuest": "Members vs Guests",
+    "lowStockAlert": "Low stock items",
+    "updateStock": "Update Stock",
+    "orderStatus": {
+      "pending_payment": "Pending Payment",
+      "processing": "Processing",
+      "shipped": "Shipped",
+      "ready_for_pickup": "Ready for Pickup",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "filters": {
+      "all": "All Orders",
+      "preorder": "Preorder Only",
+      "pending": "Pending",
+      "completed": "Completed"
+    }
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "loading": "Loading...",
+    "error": "Something went wrong. Please try again.",
+    "close": "Close"
+  }
+}
