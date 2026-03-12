@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { ImageUploader } from "@/components/admin/ImageUploader";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import type { Product, ProductVariant } from "@/lib/supabase/types";
@@ -330,22 +331,10 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
             </div>
           </div>
 
-          {/* Image URL */}
+          {/* Image Upload */}
           <div className="space-y-1.5">
-            <Label className="text-xs text-white/50">Product Image URL</Label>
-            <div className="flex gap-3 items-center">
-              <Input
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://..."
-                className="border-white/20 bg-white/5 text-white placeholder:text-white/20"
-              />
-              {imageUrl && (
-                <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md border border-white/10">
-                  <Image src={imageUrl} alt="preview" fill sizes="40px" className="object-cover" />
-                </div>
-              )}
-            </div>
+            <Label className="text-xs text-white/50">Product Image</Label>
+            <ImageUploader value={imageUrl} onChange={setImageUrl} />
           </div>
 
           {/* Toggles */}
