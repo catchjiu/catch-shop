@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { LayoutGrid, Package, ShoppingBag, BarChart3, LogOut } from "lucide-react";
+import { LayoutGrid, Package, ShoppingBag, Tag, LogOut } from "lucide-react";
 import Link from "next/link";
 import "../globals.css";
 
@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 
 const navItems = [
   { href: "/admin/shop", label: "Dashboard", icon: LayoutGrid },
+  { href: "/admin/shop/products", label: "Products", icon: Tag },
   { href: "/admin/shop/inventory", label: "Inventory", icon: Package },
   { href: "/admin/shop/orders", label: "Orders", icon: ShoppingBag },
 ];
