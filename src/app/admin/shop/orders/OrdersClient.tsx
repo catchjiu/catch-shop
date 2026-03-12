@@ -2,8 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, Package, Truck, CheckCircle, XCircle, AlertCircle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Clock, Package, Truck, CheckCircle, XCircle, AlertCircle, ChevronDown } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Select,
@@ -72,6 +71,56 @@ interface OrdersClientProps {
   currentFilter: string;
 }
 
+// ─── Shared status selector ───────────────────────────────────────────────────
+
+function StatusSelect({
+  order,
+  onStatusChange,
+  disabled,
+  fullWidth = false,
+}: {
+  order: Order;
+  onStatusChange: (id: string, status: OrderStatus) => void;
+  disabled: boolean;
+  fullWidth?: boolean;
+}) {
+  return (
+    <Select
+      value={order.status}
+      onValueChange={(v) => onStatusChange(order.id, v as OrderStatus)}
+      disabled={disabled}
+    >
+      <SelectTrigger
+        className={`h-9 border text-xs font-medium ${STATUS_COLORS[order.status]} ${fullWidth ? "w-full" : "w-44"}`}
+      >
+        <SelectValue>
+          <span className="flex items-center gap-1.5">
+            {STATUS_ICONS[order.status]}
+            {STATUS_LABELS[order.status]}
+          </span>
+        </SelectValue>
+        <ChevronDown className="h-3.5 w-3.5 opacity-50 ml-auto" />
+      </SelectTrigger>
+      <SelectContent className="bg-slate-900 border-white/10">
+        {STATUS_OPTIONS.map((status) => (
+          <SelectItem
+            key={status}
+            value={status}
+            className="text-white/70 focus:bg-white/10 focus:text-white text-xs"
+          >
+            <span className="flex items-center gap-2">
+              {STATUS_ICONS[status]}
+              {STATUS_LABELS[status]}
+            </span>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export function OrdersClient({ orders: initialOrders, currentFilter }: OrdersClientProps) {
   const router = useRouter();
   const [orders, setOrders] = useState(initialOrders);
@@ -89,7 +138,6 @@ export function OrdersClient({ orders: initialOrders, currentFilter }: OrdersCli
         toast.error("Failed to update order status");
         return;
       }
-
       setOrders((prev) =>
         prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
       );
@@ -118,104 +166,141 @@ export function OrdersClient({ orders: initialOrders, currentFilter }: OrdersCli
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value={currentFilter}>
-        <div className="rounded-xl border border-white/10 overflow-hidden mt-4">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/10 bg-white/5">
-                <th className="px-4 py-3 text-left font-medium text-white/50">Order</th>
-                <th className="px-4 py-3 text-left font-medium text-white/50">Customer</th>
-                <th className="px-4 py-3 text-left font-medium text-white/50">Type</th>
-                <th className="px-4 py-3 text-left font-medium text-white/50">Payment</th>
-                <th className="px-4 py-3 text-right font-medium text-white/50">Amount</th>
-                <th className="px-4 py-3 text-left font-medium text-white/50">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((order) => (
-                <tr
-                  key={order.id}
-                  className="border-b border-white/5 hover:bg-white/[0.02] transition-colors"
-                >
-                  <td className="px-4 py-3">
-                    <p className="font-mono text-xs text-white/60">
-                      #{order.id.slice(0, 8).toUpperCase()}
-                    </p>
-                    <p className="text-xs text-white/30 mt-0.5">
-                      {new Date(order.created_at).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="text-white/80">{order.shipping_name}</p>
-                    <p className="text-xs text-white/40">{order.shipping_email}</p>
-                    {!order.user_id && (
-                      <span className="text-xs text-white/30">Guest</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {order.is_preorder_order ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-xs text-amber-400">
-                        <AlertCircle className="h-3 w-3" />
-                        Preorder
-                      </span>
-                    ) : (
-                      <span className="text-xs text-white/30">Standard</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-white/50">
-                    <span className="capitalize">{order.payment_method.replace(/_/g, " ")}</span>
-                    {order.payment_ref?.startsWith("bank_last5:") && (
-                      <span className="ml-1.5 font-mono text-white/70 bg-white/5 border border-white/10 rounded px-1.5 py-0.5">
-                        …{order.payment_ref.replace("bank_last5:", "")}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold text-white">
-                    {formatTWD(order.total_amount, "en")}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Select
-                      value={order.status}
-                      onValueChange={(v) => handleStatusChange(order.id, v as OrderStatus)}
-                      disabled={isPending}
-                    >
-                      <SelectTrigger
-                        className={`h-8 w-44 border text-xs ${STATUS_COLORS[order.status]}`}
-                      >
-                        <SelectValue>
-                          <span className="flex items-center gap-1.5">
-                            {STATUS_ICONS[order.status]}
-                            {STATUS_LABELS[order.status]}
-                          </span>
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-900 border-white/10">
-                        {STATUS_OPTIONS.map((status) => (
-                          <SelectItem
-                            key={status}
-                            value={status}
-                            className="text-white/70 focus:bg-white/10 focus:text-white text-xs"
-                          >
-                            <span className="flex items-center gap-2">
-                              {STATUS_ICONS[status]}
-                              {STATUS_LABELS[status]}
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <TabsContent value={currentFilter} className="mt-4">
+        <div className="rounded-xl border border-white/10 overflow-hidden">
 
           {orders.length === 0 && (
             <div className="py-16 text-center text-white/30">No orders found.</div>
+          )}
+
+          {orders.length > 0 && (
+            <>
+              {/* ── Mobile card list (< md) ──────────────────────────── */}
+              <div className="divide-y divide-white/5 md:hidden">
+                {orders.map((order) => (
+                  <div key={order.id} className="p-4 space-y-3">
+
+                    {/* Top row: ID + date + amount */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-mono text-xs font-semibold text-white/70">
+                          #{order.id.slice(0, 8).toUpperCase()}
+                        </p>
+                        <p className="text-xs text-white/30 mt-0.5">
+                          {new Date(order.created_at).toLocaleDateString("en-US", {
+                            month: "short", day: "numeric", year: "numeric",
+                          })}
+                        </p>
+                      </div>
+                      <p className="text-sm font-bold text-white">
+                        {formatTWD(order.total_amount, "en")}
+                      </p>
+                    </div>
+
+                    {/* Customer */}
+                    <div>
+                      <p className="text-sm font-medium text-white/80">{order.shipping_name}</p>
+                      <p className="text-xs text-white/40">{order.shipping_email}</p>
+                      <div className="mt-1 flex items-center gap-2 flex-wrap">
+                        {!order.user_id && (
+                          <span className="text-[10px] text-white/30 border border-white/10 rounded-full px-2 py-0.5">
+                            Guest
+                          </span>
+                        )}
+                        {order.is_preorder_order && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-[10px] text-amber-400">
+                            <AlertCircle className="h-2.5 w-2.5" /> Preorder
+                          </span>
+                        )}
+                        <span className="text-[10px] text-white/30 capitalize">
+                          {order.payment_method.replace(/_/g, " ")}
+                          {order.payment_ref?.startsWith("bank_last5:") && (
+                            <span className="ml-1 font-mono text-white/50">
+                              …{order.payment_ref.replace("bank_last5:", "")}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Status selector — full width on mobile */}
+                    <StatusSelect
+                      order={order}
+                      onStatusChange={handleStatusChange}
+                      disabled={isPending}
+                      fullWidth
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Desktop table (md+) ──────────────────────────────── */}
+              <table className="hidden w-full text-sm md:table">
+                <thead>
+                  <tr className="border-b border-white/10 bg-white/5">
+                    <th className="px-4 py-3 text-left font-medium text-white/50">Order</th>
+                    <th className="px-4 py-3 text-left font-medium text-white/50">Customer</th>
+                    <th className="px-4 py-3 text-left font-medium text-white/50">Type</th>
+                    <th className="px-4 py-3 text-left font-medium text-white/50">Payment</th>
+                    <th className="px-4 py-3 text-right font-medium text-white/50">Amount</th>
+                    <th className="px-4 py-3 text-left font-medium text-white/50">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.map((order) => (
+                    <tr
+                      key={order.id}
+                      className="border-b border-white/5 hover:bg-white/[0.02] transition-colors"
+                    >
+                      <td className="px-4 py-3">
+                        <p className="font-mono text-xs text-white/60">
+                          #{order.id.slice(0, 8).toUpperCase()}
+                        </p>
+                        <p className="text-xs text-white/30 mt-0.5">
+                          {new Date(order.created_at).toLocaleDateString("en-US", {
+                            month: "short", day: "numeric", year: "numeric",
+                          })}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="text-white/80">{order.shipping_name}</p>
+                        <p className="text-xs text-white/40">{order.shipping_email}</p>
+                        {!order.user_id && (
+                          <span className="text-xs text-white/30">Guest</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {order.is_preorder_order ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-xs text-amber-400">
+                            <AlertCircle className="h-3 w-3" /> Preorder
+                          </span>
+                        ) : (
+                          <span className="text-xs text-white/30">Standard</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-white/50">
+                        <span className="capitalize">{order.payment_method.replace(/_/g, " ")}</span>
+                        {order.payment_ref?.startsWith("bank_last5:") && (
+                          <span className="ml-1.5 font-mono text-white/70 bg-white/5 border border-white/10 rounded px-1.5 py-0.5">
+                            …{order.payment_ref.replace("bank_last5:", "")}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold text-white">
+                        {formatTWD(order.total_amount, "en")}
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusSelect
+                          order={order}
+                          onStatusChange={handleStatusChange}
+                          disabled={isPending}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
           )}
         </div>
       </TabsContent>
