@@ -243,8 +243,8 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 backdrop-blur-sm p-4">
-      <div className="relative my-8 w-full max-w-2xl rounded-2xl border border-white/10 bg-slate-900 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 backdrop-blur-sm p-3 sm:p-4">
+      <div className="relative my-4 sm:my-8 w-full max-w-2xl rounded-2xl border border-white/10 bg-slate-900 shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
           <h2 className="text-lg font-semibold text-white">
@@ -560,165 +560,228 @@ export function ProductsClient({ products: initialProducts }: ProductsClientProp
             </Button>
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/10 bg-white/[0.02]">
-                <th className="px-4 py-3 text-left font-medium text-white/40">Product</th>
-                <th className="px-4 py-3 text-left font-medium text-white/40">Slug</th>
-                <th className="px-4 py-3 text-center font-medium text-white/40">Price</th>
-                <th className="px-4 py-3 text-center font-medium text-white/40">Variants</th>
-                <th className="px-4 py-3 text-center font-medium text-white/40">Status</th>
-                <th className="px-4 py-3 text-right font-medium text-white/40">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            {/* ── Mobile card list (< md) ─────────────────────────────── */}
+            <div className="divide-y divide-white/5 md:hidden">
               {products.map((product) => {
                 const isExpanded = expandedId === product.id;
-                const totalStock = product.product_variants.reduce(
-                  (sum, v) => sum + v.stock_quantity,
-                  0
-                );
                 const hasLowStock = product.product_variants.some((v) => v.stock_quantity < 5);
+                const totalStock = product.product_variants.reduce((s, v) => s + v.stock_quantity, 0);
 
                 return (
-                  <Fragment key={product.id}>
-                    <tr
-                      className="border-b border-white/5 hover:bg-white/[0.02] transition-colors"
-                    >
-                      {/* Product */}
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md bg-slate-800">
-                            {product.base_image_url ? (
-                              <Image
-                                src={product.base_image_url}
-                                alt={product.name_en}
-                                fill
-                                sizes="40px"
-                                className="object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-full items-center justify-center">
-                                <Package className="h-4 w-4 text-white/20" />
-                              </div>
-                            )}
+                  <div key={product.id} className="p-4 space-y-3">
+                    {/* Top row: image + name + actions */}
+                    <div className="flex items-start gap-3">
+                      <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-slate-800">
+                        {product.base_image_url ? (
+                          <Image src={product.base_image_url} alt={product.name_en} fill sizes="56px" className="object-cover" />
+                        ) : (
+                          <div className="flex h-full items-center justify-center">
+                            <Package className="h-5 w-5 text-white/20" />
                           </div>
-                          <div>
-                            <p className="font-medium text-white line-clamp-1">{product.name_en}</p>
-                            <p className="text-xs text-white/40 line-clamp-1">{product.name_zh}</p>
-                          </div>
-                        </div>
-                      </td>
+                        )}
+                      </div>
 
-                      {/* Slug */}
-                      <td className="px-4 py-3 font-mono text-xs text-white/40">
-                        {product.slug}
-                      </td>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-white truncate">{product.name_en}</p>
+                        <p className="text-xs text-white/40 truncate">{product.name_zh}</p>
+                        <p className="mt-1 text-sm font-semibold text-white/80">NT$ {product.price_twd.toLocaleString()}</p>
+                      </div>
 
-                      {/* Price */}
-                      <td className="px-4 py-3 text-center text-white/80">
-                        NT$ {product.price_twd.toLocaleString()}
-                      </td>
-
-                      {/* Variants */}
-                      <td className="px-4 py-3 text-center">
+                      {/* Action buttons — always visible on mobile */}
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         <button
-                          onClick={() => setExpandedId(isExpanded ? null : product.id)}
-                          className="inline-flex items-center gap-1 text-white/60 hover:text-white transition-colors"
+                          onClick={() => openEdit(product)}
+                          className="flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/10 transition-colors"
                         >
-                          <span className="font-medium">{product.product_variants.length}</span>
-                          <span className="text-xs text-white/30">variants</span>
-                          {hasLowStock && <AlertTriangle className="h-3.5 w-3.5 text-amber-400 ml-1" />}
-                          {isExpanded ? (
-                            <ChevronUp className="h-3.5 w-3.5" />
-                          ) : (
-                            <ChevronDown className="h-3.5 w-3.5" />
-                          )}
+                          <Pencil className="h-3.5 w-3.5" /> Edit
                         </button>
-                      </td>
+                        <button
+                          onClick={() => setDeletingProduct(product)}
+                          className="flex items-center justify-center rounded-lg border border-red-500/20 bg-red-500/5 p-1.5 text-red-400 hover:bg-red-500/10 transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
 
-                      {/* Status */}
-                      <td className="px-4 py-3 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          {product.is_active ? (
-                            <Badge variant="default" className="bg-green-500/20 text-green-400 border-green-500/20">
-                              <Check className="mr-1 h-3 w-3" /> Active
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="bg-white/5 text-white/30 border-white/10">
-                              Hidden
-                            </Badge>
-                          )}
-                          {product.is_preorder && (
-                            <Badge variant="preorder">Preorder</Badge>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => openEdit(product)}
-                            className="h-7 text-white/40 hover:text-white text-xs"
-                          >
-                            <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setDeletingProduct(product)}
-                            className="h-7 text-white/40 hover:text-red-400 text-xs"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
+                    {/* Badges + variant toggle */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {product.is_active ? (
+                          <Badge variant="default" className="bg-green-500/20 text-green-400 border-green-500/20 text-[10px]">
+                            <Check className="mr-1 h-2.5 w-2.5" /> Active
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="bg-white/5 text-white/30 border-white/10 text-[10px]">Hidden</Badge>
+                        )}
+                        {product.is_preorder && <Badge variant="preorder" className="text-[10px]">Preorder</Badge>}
+                        {hasLowStock && (
+                          <span className="flex items-center gap-1 text-[10px] text-amber-400">
+                            <AlertTriangle className="h-3 w-3" /> Low stock
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => setExpandedId(isExpanded ? null : product.id)}
+                        className="flex items-center gap-1 text-xs text-white/50 hover:text-white transition-colors"
+                      >
+                        {product.product_variants.length} variants
+                        {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
 
                     {/* Expanded variants */}
                     {isExpanded && (
-                      <tr className="border-b border-white/5 bg-white/[0.01]">
-                        <td colSpan={6} className="px-6 pb-4 pt-2">
-                          <div className="rounded-xl border border-white/10 overflow-hidden">
-                            <table className="w-full text-xs">
-                              <thead>
-                                <tr className="border-b border-white/10 bg-white/5">
-                                  <th className="px-3 py-2 text-left font-medium text-white/40">Size</th>
-                                  <th className="px-3 py-2 text-left font-medium text-white/40">Color</th>
-                                  <th className="px-3 py-2 text-center font-medium text-white/40">Stock</th>
-                                  <th className="px-3 py-2 text-left font-medium text-white/40">SKU</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {product.product_variants.map((v) => (
-                                  <tr key={v.id} className="border-b border-white/5">
-                                    <td className="px-3 py-2 text-white/80">{v.size}</td>
-                                    <td className="px-3 py-2 text-white/60 capitalize">{v.color}</td>
-                                    <td className="px-3 py-2 text-center">
-                                      <span className={v.stock_quantity === 0 ? "text-red-400 font-bold" : v.stock_quantity < 5 ? "text-amber-400 font-bold" : "text-white/80"}>
-                                        {v.stock_quantity}
-                                      </span>
-                                    </td>
-                                    <td className="px-3 py-2 font-mono text-white/40">{v.sku ?? "—"}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                          <p className="mt-2 text-xs text-white/30">
-                            Total stock: <span className="text-white/60 font-medium">{totalStock}</span> units across {product.product_variants.length} variants
-                          </p>
-                        </td>
-                      </tr>
+                      <div className="rounded-xl border border-white/10 overflow-hidden">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b border-white/10 bg-white/5">
+                              <th className="px-3 py-2 text-left font-medium text-white/40">Size</th>
+                              <th className="px-3 py-2 text-left font-medium text-white/40">Color</th>
+                              <th className="px-3 py-2 text-center font-medium text-white/40">Stock</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {product.product_variants.map((v) => (
+                              <tr key={v.id} className="border-b border-white/5">
+                                <td className="px-3 py-2 text-white/80">{v.size}</td>
+                                <td className="px-3 py-2 text-white/60 capitalize">{v.color}</td>
+                                <td className="px-3 py-2 text-center">
+                                  <span className={v.stock_quantity === 0 ? "text-red-400 font-bold" : v.stock_quantity < 5 ? "text-amber-400 font-bold" : "text-white/80"}>
+                                    {v.stock_quantity}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <p className="px-3 py-2 text-[10px] text-white/30">
+                          Total: {totalStock} units
+                        </p>
+                      </div>
                     )}
-                  </Fragment>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
+            </div>
+
+            {/* ── Desktop table (md+) ─────────────────────────────────── */}
+            <table className="hidden w-full text-sm md:table">
+              <thead>
+                <tr className="border-b border-white/10 bg-white/[0.02]">
+                  <th className="px-4 py-3 text-left font-medium text-white/40">Product</th>
+                  <th className="px-4 py-3 text-left font-medium text-white/40">Slug</th>
+                  <th className="px-4 py-3 text-center font-medium text-white/40">Price</th>
+                  <th className="px-4 py-3 text-center font-medium text-white/40">Variants</th>
+                  <th className="px-4 py-3 text-center font-medium text-white/40">Status</th>
+                  <th className="px-4 py-3 text-right font-medium text-white/40">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {products.map((product) => {
+                  const isExpanded = expandedId === product.id;
+                  const totalStock = product.product_variants.reduce((sum, v) => sum + v.stock_quantity, 0);
+                  const hasLowStock = product.product_variants.some((v) => v.stock_quantity < 5);
+
+                  return (
+                    <Fragment key={product.id}>
+                      <tr className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md bg-slate-800">
+                              {product.base_image_url ? (
+                                <Image src={product.base_image_url} alt={product.name_en} fill sizes="40px" className="object-cover" />
+                              ) : (
+                                <div className="flex h-full items-center justify-center">
+                                  <Package className="h-4 w-4 text-white/20" />
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium text-white line-clamp-1">{product.name_en}</p>
+                              <p className="text-xs text-white/40 line-clamp-1">{product.name_zh}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-white/40">{product.slug}</td>
+                        <td className="px-4 py-3 text-center text-white/80">NT$ {product.price_twd.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => setExpandedId(isExpanded ? null : product.id)}
+                            className="inline-flex items-center gap-1 text-white/60 hover:text-white transition-colors"
+                          >
+                            <span className="font-medium">{product.product_variants.length}</span>
+                            <span className="text-xs text-white/30">variants</span>
+                            {hasLowStock && <AlertTriangle className="h-3.5 w-3.5 text-amber-400 ml-1" />}
+                            {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                          </button>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            {product.is_active ? (
+                              <Badge variant="default" className="bg-green-500/20 text-green-400 border-green-500/20">
+                                <Check className="mr-1 h-3 w-3" /> Active
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="bg-white/5 text-white/30 border-white/10">Hidden</Badge>
+                            )}
+                            {product.is_preorder && <Badge variant="preorder">Preorder</Badge>}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button size="sm" variant="ghost" onClick={() => openEdit(product)} className="h-7 text-white/40 hover:text-white text-xs">
+                              <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setDeletingProduct(product)} className="h-7 text-white/40 hover:text-red-400 text-xs">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+
+                      {isExpanded && (
+                        <tr className="border-b border-white/5 bg-white/[0.01]">
+                          <td colSpan={6} className="px-6 pb-4 pt-2">
+                            <div className="rounded-xl border border-white/10 overflow-hidden">
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="border-b border-white/10 bg-white/5">
+                                    <th className="px-3 py-2 text-left font-medium text-white/40">Size</th>
+                                    <th className="px-3 py-2 text-left font-medium text-white/40">Color</th>
+                                    <th className="px-3 py-2 text-center font-medium text-white/40">Stock</th>
+                                    <th className="px-3 py-2 text-left font-medium text-white/40">SKU</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {product.product_variants.map((v) => (
+                                    <tr key={v.id} className="border-b border-white/5">
+                                      <td className="px-3 py-2 text-white/80">{v.size}</td>
+                                      <td className="px-3 py-2 text-white/60 capitalize">{v.color}</td>
+                                      <td className="px-3 py-2 text-center">
+                                        <span className={v.stock_quantity === 0 ? "text-red-400 font-bold" : v.stock_quantity < 5 ? "text-amber-400 font-bold" : "text-white/80"}>
+                                          {v.stock_quantity}
+                                        </span>
+                                      </td>
+                                      <td className="px-3 py-2 font-mono text-white/40">{v.sku ?? "—"}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            <p className="mt-2 text-xs text-white/30">
+                              Total stock: <span className="text-white/60 font-medium">{totalStock}</span> units across {product.product_variants.length} variants
+                            </p>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </>
         )}
       </div>
 
