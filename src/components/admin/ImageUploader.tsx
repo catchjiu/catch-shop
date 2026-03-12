@@ -30,7 +30,7 @@ export function ImageUploader({ value, onChange }: ImageUploaderProps) {
         const json = await res.json();
 
         if (!res.ok || json.error) {
-          toast.error(json.error ?? "Upload failed.");
+          toast.error(json.error ?? `Upload failed (${res.status}).`);
           return;
         }
 

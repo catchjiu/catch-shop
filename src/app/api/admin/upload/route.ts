@@ -5,6 +5,27 @@ const BUCKET = "product-images";
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
+async function ensureBucket(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>
+) {
+  // Check if bucket already exists
+  const { data: buckets } = await supabase.storage.listBuckets();
+  const exists = buckets?.some((b) => b.id === BUCKET);
+
+  if (!exists) {
+    const { error } = await supabase.storage.createBucket(BUCKET, {
+      public: true,
+      fileSizeLimit: MAX_SIZE,
+      allowedMimeTypes: ALLOWED_TYPES,
+    });
+    if (error) {
+      console.error("Failed to create bucket:", error);
+      return false;
+    }
+  }
+  return true;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -28,6 +49,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const supabase = await createServiceClient();
+
+    // Auto-create bucket if it doesn't exist yet
+    const ready = await ensureBucket(supabase);
+    if (!ready) {
+      return NextResponse.json(
+        { error: "Storage bucket unavailable. Please contact the administrator." },
+        { status: 500 }
+      );
+    }
+
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
     const timestamp = Date.now();
     const random = Math.random().toString(36).slice(2, 8);
@@ -35,8 +67,6 @@ export async function POST(request: NextRequest) {
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = new Uint8Array(arrayBuffer);
-
-    const supabase = await createServiceClient();
 
     const { error: uploadError } = await supabase.storage
       .from(BUCKET)
@@ -46,9 +76,9 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      console.error("Storage upload error:", uploadError);
+      console.error("Storage upload error:", uploadError.message);
       return NextResponse.json(
-        { error: "Upload failed. Please try again." },
+        { error: `Upload failed: ${uploadError.message}` },
         { status: 500 }
       );
     }
@@ -58,6 +88,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: urlData.publicUrl });
   } catch (err) {
     console.error("Upload route error:", err);
-    return NextResponse.json({ error: "Server error." }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Server error." },
+      { status: 500 }
+    );
   }
 }
