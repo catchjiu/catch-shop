@@ -3,7 +3,6 @@ import { createClient } from "@supabase/supabase-js";
 
 const BUCKET = "product-images";
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -29,7 +28,6 @@ async function ensureBucket(supabase: ReturnType<typeof createClient>) {
   const { error: createError } = await supabase.storage.createBucket(BUCKET, {
     public: true,
     fileSizeLimit: MAX_SIZE,
-    allowedMimeTypes: ALLOWED_TYPES,
   });
   if (createError) {
     console.error("createBucket error:", createError.message);
@@ -43,13 +41,13 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
 
-    if (!file) {
+    if (!file || typeof file === "string") {
       return NextResponse.json({ error: "No file provided." }, { status: 400 });
     }
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    if (!file.type.startsWith("image/")) {
       return NextResponse.json(
-        { error: "Only JPEG, PNG, WebP, and GIF images are allowed." },
+        { error: `File type "${file.type}" is not allowed. Please upload an image.` },
         { status: 400 }
       );
     }
@@ -67,12 +65,15 @@ export async function POST(request: NextRequest) {
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
     const path = `products/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
+    // Normalise MIME type (some browsers report image/jpg instead of image/jpeg)
+    const mimeType = file.type === "image/jpg" ? "image/jpeg" : file.type;
+
     const arrayBuffer = await file.arrayBuffer();
     const buffer = new Uint8Array(arrayBuffer);
 
     const { error: uploadError } = await supabase.storage
       .from(BUCKET)
-      .upload(path, buffer, { contentType: file.type, upsert: false });
+      .upload(path, buffer, { contentType: mimeType, upsert: false });
 
     if (uploadError) {
       console.error("Upload error:", uploadError.message);
