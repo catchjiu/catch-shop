@@ -21,14 +21,25 @@ export default async function SuccessPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  let order = null;
+  type OrderRow = {
+    id: string;
+    total_amount: number;
+    status: string;
+    payment_method: string;
+    is_preorder_order: boolean;
+    shipping_email: string | null;
+    guest_email: string | null;
+    created_at: string;
+  };
+
+  let order: OrderRow | null = null;
   if (orderId) {
     const { data } = await supabase
       .from("orders")
       .select("id, total_amount, status, payment_method, is_preorder_order, shipping_email, guest_email, created_at")
       .eq("id", orderId)
       .single();
-    order = data;
+    order = data as OrderRow | null;
   }
 
   const isGuest = !user && (order?.guest_email ?? order?.shipping_email);
