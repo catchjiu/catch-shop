@@ -24,6 +24,13 @@ interface ProductsClientProps {
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
+const COLOR_CSS: Record<string, string> = {
+  white: "#F8F8F8", black: "#1C1C1C", blue: "#1D4ED8", navy: "#1E3A5F",
+  red: "#DC2626", green: "#16A34A", yellow: "#EAB308", pink: "#EC4899",
+  purple: "#9333EA", grey: "#6B7280", gray: "#6B7280", gold: "#D97706",
+  silver: "#9CA3AF", orange: "#EA580C", brown: "#92400E",
+};
+
 function slugify(str: string) {
   return str
     .toLowerCase()
@@ -186,6 +193,18 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
 
   const uniqueColors = [...new Set(variants.map((v) => v.color).filter(Boolean))] as string[];
 
+  // Color groups: all expanded by default
+  const [expandedColors, setExpandedColors] = useState<Set<string>>(() => new Set(uniqueColors));
+  const toggleColor = (c: string) =>
+    setExpandedColors((prev) => {
+      const next = new Set(prev);
+      next.has(c) ? next.delete(c) : next.add(c);
+      return next;
+    });
+  // Expand a new color group when variants are added
+  const ensureExpanded = (c: string) =>
+    setExpandedColors((prev) => new Set([...prev, c]));
+
   const handleColorImageUpload = async (color: string, file: File) => {
     setUploadingColor(color);
     try {
@@ -204,11 +223,13 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
     if (!isEdit && !slug) setSlug(slugify(nameEn));
   };
 
-  const addVariant = () => {
+  const addVariant = (forColor?: string) => {
+    const color = forColor ?? quickColor.trim() ?? "";
     const key = `new-${Date.now()}`;
+    if (color) ensureExpanded(color);
     setVariants((prev) => [
       ...prev,
-      { _key: key, size: "", color: "", stock_quantity: 0, sku: "" },
+      { _key: key, size: "", color, stock_quantity: 0, sku: "" },
     ]);
   };
 
@@ -228,6 +249,7 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
       toast.info("All sizes in this preset already exist.");
       return;
     }
+    ensureExpanded(color);
     setVariants((prev) => [...prev, ...newRows]);
   };
 
@@ -566,10 +588,10 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-xs text-white/30">{variants.length} variant{variants.length !== 1 ? "s" : ""}</span>
+              <span className="text-xs text-white/30">{variants.length} variant{variants.length !== 1 ? "s" : ""}{uniqueColors.length > 0 && ` · ${uniqueColors.length} colour${uniqueColors.length !== 1 ? "s" : ""}`}</span>
               <button
                 type="button"
-                onClick={addVariant}
+                onClick={() => addVariant()}
                 className="flex items-center gap-1.5 rounded-lg border border-white/20 px-3 py-1 text-xs text-white/60 hover:bg-white/5 hover:text-white transition-colors"
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -578,29 +600,101 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
             </div>
 
             {variants.length > 0 ? (
-              <div className="overflow-x-auto rounded-xl border border-white/10">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-white/10 bg-white/5">
-                      <th className="px-3 py-2 text-left text-xs font-medium text-white/40">Size</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-white/40">Color</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-white/40">Stock</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-white/40">SKU <span className="text-white/20 font-normal">(auto)</span></th>
-                      <th className="px-3 py-2" />
-                    </tr>
-                  </thead>
-                  <tbody className="px-3">
-                    {variants.map((v) => (
-                      <VariantRow
-                        key={v._key}
-                        variant={v}
-                        productSlug={slug}
-                        onChange={updateVariant}
-                        onRemove={removeVariant}
-                      />
-                    ))}
-                  </tbody>
-                </table>
+              <div className="space-y-2">
+                {/* Group variants by color */}
+                {uniqueColors.map((color) => {
+                  const colorVariants = variants.filter((v) => v.color === color);
+                  const isOpen = expandedColors.has(color);
+                  const totalStock = colorVariants.reduce((sum, v) => sum + (v.stock_quantity ?? 0), 0);
+                  return (
+                    <div key={color} className="rounded-xl border border-white/10 overflow-hidden">
+                      {/* Group header */}
+                      <button
+                        type="button"
+                        onClick={() => toggleColor(color)}
+                        className="flex w-full items-center justify-between gap-3 bg-white/5 px-4 py-2.5 text-left hover:bg-white/8 transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className="h-4 w-4 flex-shrink-0 rounded-full border border-white/20"
+                            style={{ backgroundColor: COLOR_CSS[color.toLowerCase()] ?? "#6B7280" }}
+                          />
+                          <span className="text-sm font-semibold capitalize text-white">{color}</span>
+                          <span className="text-xs text-white/30">
+                            {colorVariants.length} size{colorVariants.length !== 1 ? "s" : ""} · stock {totalStock}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); addVariant(color); }}
+                            className="flex items-center gap-1 rounded-md border border-white/15 px-2 py-0.5 text-[11px] text-white/40 hover:border-white/30 hover:text-white transition-colors"
+                          >
+                            <Plus className="h-3 w-3" /> Size
+                          </button>
+                          {isOpen
+                            ? <ChevronUp className="h-4 w-4 text-white/30" />
+                            : <ChevronDown className="h-4 w-4 text-white/30" />}
+                        </div>
+                      </button>
+
+                      {/* Expanded rows */}
+                      {isOpen && (
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-white/5">
+                              <th className="px-3 py-1.5 text-left text-xs font-medium text-white/30">Size</th>
+                              <th className="px-3 py-1.5 text-left text-xs font-medium text-white/30">Color</th>
+                              <th className="px-3 py-1.5 text-left text-xs font-medium text-white/30">Stock</th>
+                              <th className="px-3 py-1.5 text-left text-xs font-medium text-white/30">SKU <span className="font-normal text-white/20">(auto)</span></th>
+                              <th className="px-3 py-1.5" />
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {colorVariants.map((v) => (
+                              <VariantRow
+                                key={v._key}
+                                variant={v}
+                                productSlug={slug}
+                                onChange={updateVariant}
+                                onRemove={removeVariant}
+                              />
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Ungrouped variants (no color set yet) */}
+                {variants.filter((v) => !v.color).length > 0 && (
+                  <div className="rounded-xl border border-dashed border-white/10 overflow-hidden">
+                    <div className="bg-white/5 px-4 py-2 text-xs text-white/30">No colour assigned</div>
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-white/5">
+                          <th className="px-3 py-1.5 text-left text-xs font-medium text-white/30">Size</th>
+                          <th className="px-3 py-1.5 text-left text-xs font-medium text-white/30">Color</th>
+                          <th className="px-3 py-1.5 text-left text-xs font-medium text-white/30">Stock</th>
+                          <th className="px-3 py-1.5 text-left text-xs font-medium text-white/30">SKU</th>
+                          <th className="px-3 py-1.5" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {variants.filter((v) => !v.color).map((v) => (
+                          <VariantRow
+                            key={v._key}
+                            variant={v}
+                            productSlug={slug}
+                            onChange={updateVariant}
+                            onRemove={removeVariant}
+                          />
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="rounded-xl border border-dashed border-white/10 py-6 text-center text-sm text-white/30">
