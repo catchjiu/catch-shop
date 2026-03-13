@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ImageUploader } from "@/components/admin/ImageUploader";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import type { Product, ProductVariant } from "@/lib/supabase/types";
@@ -407,25 +408,21 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
           </div>
 
           {/* Descriptions */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="space-y-1.5">
               <Label className="text-xs text-white/50">Description (English)</Label>
-              <textarea
+              <RichTextEditor
                 value={descEn}
-                onChange={(e) => setDescEn(e.target.value)}
-                rows={3}
+                onChange={setDescEn}
                 placeholder="Product description..."
-                className="w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:ring-1 focus:ring-white/30 resize-none"
               />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-white/50">商品描述（中文）</Label>
-              <textarea
+              <RichTextEditor
                 value={descZh}
-                onChange={(e) => setDescZh(e.target.value)}
-                rows={3}
+                onChange={setDescZh}
                 placeholder="商品描述..."
-                className="w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:ring-1 focus:ring-white/30 resize-none"
               />
             </div>
           </div>

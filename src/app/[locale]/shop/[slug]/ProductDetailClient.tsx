@@ -134,7 +134,14 @@ export function ProductDetailClient({ product, locale }: ProductDetailClientProp
         {description && (
           <>
             <Separator className="bg-white/10" />
-            <p className="text-white/60 leading-relaxed">{description}</p>
+            {description.startsWith("<") ? (
+              <div
+                className="rich-text text-sm text-white/60"
+                dangerouslySetInnerHTML={{ __html: description }}
+              />
+            ) : (
+              <p className="text-sm text-white/60 leading-relaxed">{description}</p>
+            )}
           </>
         )}
 

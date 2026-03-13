@@ -34,3 +34,23 @@
     color: hsl(var(--foreground));
   }
 }
+
+/* TipTap rich-text editor — placeholder */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: rgba(255, 255, 255, 0.2);
+  pointer-events: none;
+  height: 0;
+}
+
+/* Prose styles rendered from rich-text HTML in the shop */
+.rich-text h2 { @apply text-xl font-bold mb-2 mt-4; }
+.rich-text h3 { @apply text-lg font-semibold mb-1 mt-3; }
+.rich-text p  { @apply mb-2 leading-relaxed; }
+.rich-text ul { @apply list-disc pl-5 mb-2 space-y-1; }
+.rich-text ol { @apply list-decimal pl-5 mb-2 space-y-1; }
+.rich-text a  { @apply underline underline-offset-2 text-blue-400 hover:text-blue-300; }
+.rich-text hr { @apply border-white/10 my-4; }
+.rich-text strong { @apply font-semibold; }
+.rich-text em { @apply italic; }
