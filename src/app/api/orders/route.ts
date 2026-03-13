@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createClient as createSsrClient } from "@/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
 import { buildNewebPayHtmlForm, buildNewebPayForm } from "@/lib/payments/newebpay";
 import type { PaymentMethod } from "@/lib/supabase/types";
 
@@ -27,6 +28,14 @@ interface OrderRequestBody {
   locale: string;
 }
 
+// Direct service-role client — bypasses RLS unconditionally
+function getServiceClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Missing Supabase env vars");
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body: OrderRequestBody = await request.json();
@@ -36,22 +45,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
     }
 
-    const supabase = await createClient();
-    const serviceClient = await createServiceClient();
+    // Read the logged-in user from the cookie-based SSR client
+    const ssrClient = await createSsrClient();
+    const { data: { user } } = await ssrClient.auth.getUser();
 
-    // Get current authenticated user (optional)
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    // All database writes use the direct service-role client
+    const db = getServiceClient();
 
     // Validate stock for non-preorder items
     const variantIds = items.map((i) => i.variantId);
-    const { data: variants } = await serviceClient
+    const { data: variants, error: variantsError } = await db
       .from("product_variants")
       .select("id, stock_quantity, products(is_preorder)")
       .in("id", variantIds);
 
-    if (!variants) {
+    if (variantsError || !variants) {
+      console.error("Variant fetch error:", variantsError);
       return NextResponse.json({ error: "Could not validate stock" }, { status: 500 });
     }
 
@@ -73,7 +82,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create order
-    const { data: order, error: orderError } = await serviceClient
+    const { data: order, error: orderError } = await db
       .from("orders")
       .insert({
         user_id: user?.id ?? null,
@@ -96,7 +105,10 @@ export async function POST(request: NextRequest) {
 
     if (orderError || !order) {
       console.error("Order creation error:", orderError);
-      return NextResponse.json({ error: "Failed to create order" }, { status: 500 });
+      return NextResponse.json(
+        { error: `Failed to create order: ${orderError?.message ?? "unknown"}` },
+        { status: 500 }
+      );
     }
 
     // Create order items
@@ -104,18 +116,32 @@ export async function POST(request: NextRequest) {
       order_id: order.id,
       variant_id: item.variantId,
       quantity: item.quantity,
-      price_at_purchase: item.price,
+      price_at_purchase: Math.round(item.price), // ensure integer
     }));
 
-    const { error: itemsError } = await serviceClient
+    const { error: itemsError } = await db
       .from("order_items")
       .insert(orderItemsData);
 
     if (itemsError) {
       console.error("Order items error:", itemsError);
-      // Rollback order
-      await serviceClient.from("orders").delete().eq("id", order.id);
-      return NextResponse.json({ error: "Failed to create order items" }, { status: 500 });
+      await db.from("orders").delete().eq("id", order.id);
+      return NextResponse.json(
+        { error: `Failed to save order items: ${itemsError.message}` },
+        { status: 500 }
+      );
+    }
+
+    // Decrement stock for non-preorder items
+    for (const item of items) {
+      const variant = variants.find((v) => v.id === item.variantId);
+      const product = variant?.products as { is_preorder: boolean } | null;
+      if (!product?.is_preorder) {
+        await db.rpc("decrement_stock", {
+          p_variant_id: item.variantId,
+          p_quantity: item.quantity,
+        });
+      }
     }
 
     // For NewebPay: build encrypted form and return it
@@ -132,8 +158,7 @@ export async function POST(request: NextRequest) {
         notifyUrl: `${siteUrl}/api/payments/newebpay/callback`,
       });
 
-      // Store trade no reference
-      await serviceClient
+      await db
         .from("orders")
         .update({ newebpay_trade_no: newebpayFormData.MerchantID + newebpayFormData.TradeInfo.slice(0, 20) })
         .eq("id", order.id);
@@ -142,7 +167,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ orderId: order.id, newebpayForm: htmlForm });
     }
 
-    // Manual bank transfer: just return order ID
     return NextResponse.json({ orderId: order.id });
   } catch (err) {
     console.error("Orders API error:", err);

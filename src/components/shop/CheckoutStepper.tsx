@@ -182,9 +182,8 @@ export function CheckoutStepper() {
       } catch { /* non-critical */ }
       router.push(`/checkout/success?orderId=${data.orderId}`);
     } catch (err) {
-      toast.error(t("errors.required"), {
-        description: err instanceof Error ? err.message : "Unknown error",
-      });
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
