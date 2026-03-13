@@ -9,5 +9,8 @@ export const routing = defineRouting({
     "/shop/[slug]": "/shop/[slug]",
     "/checkout": "/checkout",
     "/checkout/success": "/checkout/success",
+    "/auth/login": "/auth/login",
+    "/auth/register": "/auth/register",
+    "/account": "/account",
   },
 });
