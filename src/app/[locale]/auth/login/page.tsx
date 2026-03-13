@@ -26,6 +26,7 @@ export default function LoginPage() {
       const supabase = createClient();
       const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) { setError("Invalid email or password."); return; }
+      // Use raw router with locale since this is next/navigation not next-intl
       router.push(`/${locale}/account`);
       router.refresh();
     } catch {
@@ -39,7 +40,8 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <Link href={`/${locale}/shop`} className="text-2xl font-black tracking-tight text-white">
+          {/* Link from @/i18n/navigation auto-prefixes locale, so no /${locale} needed */}
+          <Link href="/shop" className="text-2xl font-black tracking-tight text-white">
             MATSIDE
           </Link>
           <p className="mt-1 text-sm text-white/40">Sign in to your account</p>
@@ -77,7 +79,7 @@ export default function LoginPage() {
 
           <p className="mt-5 text-center text-sm text-white/40">
             No account?{" "}
-            <Link href={`/${locale}/auth/register`} className="text-white underline underline-offset-2 hover:text-white/80">
+            <Link href="/auth/register" className="text-white underline underline-offset-2 hover:text-white/80">
               Create one
             </Link>
           </p>

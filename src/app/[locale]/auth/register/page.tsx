@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useLocale } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { Link } from "@/i18n/navigation";
 import { Input } from "@/components/ui/input";
@@ -11,8 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Mail, Lock, User, Phone, MapPin, Loader2 } from "lucide-react";
 
 export default function RegisterPage() {
-  const locale = useLocale();
-  const router = useRouter();
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -66,7 +62,7 @@ export default function RegisterPage() {
           <p className="text-sm text-white/50">
             We sent a confirmation link to <span className="text-white">{email}</span>. Click it to activate your account.
           </p>
-          <Link href={`/${locale}/auth/login`}
+          <Link href="/auth/login"
             className="inline-block mt-4 text-sm text-white/50 underline underline-offset-2 hover:text-white">
             Back to Sign In
           </Link>
@@ -79,7 +75,7 @@ export default function RegisterPage() {
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <Link href={`/${locale}/shop`} className="text-2xl font-black tracking-tight text-white">
+          <Link href="/shop" className="text-2xl font-black tracking-tight text-white">
             MATSIDE
           </Link>
           <p className="mt-1 text-sm text-white/40">Create your account</p>
@@ -173,7 +169,7 @@ export default function RegisterPage() {
 
           <p className="mt-5 text-center text-sm text-white/40">
             Already have an account?{" "}
-            <Link href={`/${locale}/auth/login`} className="text-white underline underline-offset-2 hover:text-white/80">
+            <Link href="/auth/login" className="text-white underline underline-offset-2 hover:text-white/80">
               Sign In
             </Link>
           </p>

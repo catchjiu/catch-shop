@@ -38,6 +38,7 @@ export function UserMenu() {
     const supabase = createClient();
     await supabase.auth.signOut();
     setOpen(false);
+    // Use raw router with locale for redirect after sign-out
     router.push(`/${locale}/shop`);
     router.refresh();
   };
@@ -56,15 +57,16 @@ export function UserMenu() {
 
         {open && (
           <div className="absolute right-0 top-full mt-2 w-44 rounded-xl border border-white/10 bg-slate-900 py-1 shadow-2xl z-50">
+            {/* Link from @/i18n/navigation auto-prefixes locale — no /${locale} prefix needed */}
             <Link
-              href={`/${locale}/auth/login`}
+              href="/auth/login"
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors"
             >
               <LogIn className="h-4 w-4" /> Sign In
             </Link>
             <Link
-              href={`/${locale}/auth/register`}
+              href="/auth/register"
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors"
             >
@@ -98,14 +100,14 @@ export function UserMenu() {
             <p className="text-[10px] text-white/40 truncate">{user.email}</p>
           </div>
           <Link
-            href={`/${locale}/account`}
+            href="/account"
             onClick={() => setOpen(false)}
             className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors"
           >
             <Package className="h-4 w-4" /> My Orders
           </Link>
           <Link
-            href={`/${locale}/account`}
+            href="/account"
             onClick={() => setOpen(false)}
             className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors"
           >

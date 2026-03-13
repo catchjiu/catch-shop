@@ -144,7 +144,7 @@ export default function AccountPage() {
               <div className="rounded-2xl border border-white/10 py-16 text-center">
                 <Package className="mx-auto h-10 w-10 text-white/20" />
                 <p className="mt-3 text-sm text-white/30">No orders yet.</p>
-                <Link href={`/${locale}/shop`} className="mt-4 inline-block text-sm text-white underline underline-offset-2">
+                <Link href="/shop" className="mt-4 inline-block text-sm text-white underline underline-offset-2">
                   Start shopping
                 </Link>
               </div>
