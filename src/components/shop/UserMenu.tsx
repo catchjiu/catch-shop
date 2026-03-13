@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { Link } from "@/i18n/navigation";
 import { User, LogOut, Package, UserPlus, LogIn, ChevronDown } from "lucide-react";
@@ -11,6 +11,7 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 export function UserMenu() {
   const locale = useLocale();
   const router = useRouter();
+  const t = useTranslations("nav");
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -25,7 +26,6 @@ export function UserMenu() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -38,7 +38,6 @@ export function UserMenu() {
     const supabase = createClient();
     await supabase.auth.signOut();
     setOpen(false);
-    // Use raw router with locale for redirect after sign-out
     router.push(`/${locale}/shop`);
     router.refresh();
   };
@@ -51,26 +50,25 @@ export function UserMenu() {
           className="flex items-center gap-1.5 rounded-md border border-white/20 px-3 py-1.5 text-sm text-white/70 hover:border-white/40 hover:text-white transition-all"
         >
           <User className="h-4 w-4" />
-          <span className="hidden sm:inline">Account</span>
+          <span className="hidden sm:inline">{t("account")}</span>
           <ChevronDown className="h-3 w-3" />
         </button>
 
         {open && (
           <div className="absolute right-0 top-full mt-2 w-44 rounded-xl border border-white/10 bg-slate-900 py-1 shadow-2xl z-50">
-            {/* Link from @/i18n/navigation auto-prefixes locale — no /${locale} prefix needed */}
             <Link
               href="/auth/login"
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors"
             >
-              <LogIn className="h-4 w-4" /> Sign In
+              <LogIn className="h-4 w-4" /> {t("signIn")}
             </Link>
             <Link
               href="/auth/register"
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors"
             >
-              <UserPlus className="h-4 w-4" /> Register
+              <UserPlus className="h-4 w-4" /> {t("register")}
             </Link>
           </div>
         )}
@@ -78,7 +76,7 @@ export function UserMenu() {
     );
   }
 
-  const displayName = user.user_metadata?.full_name?.split(" ")[0] ?? user.email?.split("@")[0] ?? "Account";
+  const displayName = user.user_metadata?.full_name?.split(" ")[0] ?? user.email?.split("@")[0] ?? t("account");
 
   return (
     <div className="relative" ref={ref}>
@@ -96,7 +94,7 @@ export function UserMenu() {
       {open && (
         <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-white/10 bg-slate-900 py-1 shadow-2xl z-50">
           <div className="border-b border-white/10 px-4 py-2.5">
-            <p className="text-xs font-medium text-white truncate">{user.user_metadata?.full_name ?? "Member"}</p>
+            <p className="text-xs font-medium text-white truncate">{user.user_metadata?.full_name ?? t("account")}</p>
             <p className="text-[10px] text-white/40 truncate">{user.email}</p>
           </div>
           <Link
@@ -104,21 +102,21 @@ export function UserMenu() {
             onClick={() => setOpen(false)}
             className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors"
           >
-            <Package className="h-4 w-4" /> My Orders
+            <Package className="h-4 w-4" /> {t("myOrders")}
           </Link>
           <Link
             href="/account"
             onClick={() => setOpen(false)}
             className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors"
           >
-            <User className="h-4 w-4" /> Edit Profile
+            <User className="h-4 w-4" /> {t("editProfile")}
           </Link>
           <div className="border-t border-white/10 mt-1">
             <button
               onClick={handleSignOut}
               className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-white/40 hover:bg-white/5 hover:text-white transition-colors"
             >
-              <LogOut className="h-4 w-4" /> Sign Out
+              <LogOut className="h-4 w-4" /> {t("signOut")}
             </button>
           </div>
         </div>

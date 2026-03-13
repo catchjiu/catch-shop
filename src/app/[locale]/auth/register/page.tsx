@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { Link } from "@/i18n/navigation";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Mail, Lock, User, Phone, MapPin, Loader2 } from "lucide-react";
 
 export default function RegisterPage() {
+  const t = useTranslations("auth");
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -24,7 +26,7 @@ export default function RegisterPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
+    if (password.length < 8) { setError(t("weakPassword")); return; }
     setLoading(true);
     try {
       const supabase = createClient();
@@ -45,7 +47,7 @@ export default function RegisterPage() {
       if (authError) { setError(authError.message); return; }
       setDone(true);
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(t("genericError"));
     } finally {
       setLoading(false);
     }
@@ -58,13 +60,13 @@ export default function RegisterPage() {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10">
             <Mail className="h-8 w-8 text-green-400" />
           </div>
-          <h2 className="text-xl font-bold text-white">Check your email</h2>
+          <h2 className="text-xl font-bold text-white">{t("checkEmailTitle")}</h2>
           <p className="text-sm text-white/50">
-            We sent a confirmation link to <span className="text-white">{email}</span>. Click it to activate your account.
+            {t("checkEmailDesc", { email })}
           </p>
           <Link href="/auth/login"
             className="inline-block mt-4 text-sm text-white/50 underline underline-offset-2 hover:text-white">
-            Back to Sign In
+            {t("backToSignIn")}
           </Link>
         </div>
       </main>
@@ -78,81 +80,75 @@ export default function RegisterPage() {
           <Link href="/shop" className="text-2xl font-black tracking-tight text-white">
             MATSIDE
           </Link>
-          <p className="mt-1 text-sm text-white/40">Create your account</p>
+          <p className="mt-1 text-sm text-white/40">{t("registerTitle")}</p>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm">
           <form onSubmit={handleRegister} className="space-y-4">
-            {/* Name */}
             <div className="space-y-1.5">
-              <Label className="text-xs text-white/50">Full Name *</Label>
+              <Label className="text-xs text-white/50">{t("fullName")} *</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
                 <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required
-                  placeholder="Dan Reid"
+                  placeholder={t("fullNamePlaceholder")}
                   className="border-white/20 bg-white/5 pl-9 text-white placeholder:text-white/20" />
               </div>
             </div>
 
-            {/* Email */}
             <div className="space-y-1.5">
-              <Label className="text-xs text-white/50">Email *</Label>
+              <Label className="text-xs text-white/50">{t("email")} *</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-                  placeholder="you@example.com"
+                  placeholder={t("emailPlaceholder")}
                   className="border-white/20 bg-white/5 pl-9 text-white placeholder:text-white/20" />
               </div>
             </div>
 
-            {/* Password */}
             <div className="space-y-1.5">
-              <Label className="text-xs text-white/50">Password * (min 8 chars)</Label>
+              <Label className="text-xs text-white/50">{t("passwordHint")}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
                 <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
-                  placeholder="••••••••" minLength={8}
+                  placeholder={t("passwordPlaceholder")} minLength={8}
                   className="border-white/20 bg-white/5 pl-9 text-white placeholder:text-white/20" />
               </div>
             </div>
 
             <div className="border-t border-white/10 pt-4">
-              <p className="mb-3 text-xs text-white/40">Shipping info (saves time at checkout)</p>
+              <p className="mb-3 text-xs text-white/40">{t("shippingHint")}</p>
 
-              {/* Phone */}
               <div className="space-y-1.5">
-                <Label className="text-xs text-white/50">Phone</Label>
+                <Label className="text-xs text-white/50">{t("phone")}</Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
                   <Input value={phone} onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+886 912 345 678"
+                    placeholder={t("phonePlaceholder")}
                     className="border-white/20 bg-white/5 pl-9 text-white placeholder:text-white/20" />
                 </div>
               </div>
 
-              {/* Address */}
               <div className="mt-3 space-y-1.5">
-                <Label className="text-xs text-white/50">Address</Label>
+                <Label className="text-xs text-white/50">{t("address")}</Label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
                   <Input value={address} onChange={(e) => setAddress(e.target.value)}
-                    placeholder="123 Main Street"
+                    placeholder={t("addressPlaceholder")}
                     className="border-white/20 bg-white/5 pl-9 text-white placeholder:text-white/20" />
                 </div>
               </div>
 
-              {/* City + ZIP */}
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-white/50">City</Label>
+                  <Label className="text-xs text-white/50">{t("city")}</Label>
                   <Input value={city} onChange={(e) => setCity(e.target.value)}
-                    placeholder="Taipei"
+                    placeholder={t("cityPlaceholder")}
                     className="border-white/20 bg-white/5 text-white placeholder:text-white/20" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-white/50">ZIP</Label>
+                  <Label className="text-xs text-white/50">{t("zip")}</Label>
                   <Input value={zip} onChange={(e) => setZip(e.target.value)}
-                    placeholder="10001"
+                    placeholder={t("zipPlaceholder")}
                     className="border-white/20 bg-white/5 text-white placeholder:text-white/20" />
                 </div>
               </div>
@@ -163,14 +159,14 @@ export default function RegisterPage() {
             )}
 
             <Button type="submit" disabled={loading} className="w-full bg-white font-semibold text-slate-900 hover:bg-white/90">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Account"}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("createAccount")}
             </Button>
           </form>
 
           <p className="mt-5 text-center text-sm text-white/40">
-            Already have an account?{" "}
+            {t("alreadyHaveAccount")}{" "}
             <Link href="/auth/login" className="text-white underline underline-offset-2 hover:text-white/80">
-              Sign In
+              {t("signIn")}
             </Link>
           </p>
         </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { Link } from "@/i18n/navigation";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,11 @@ const STATUS_COLORS: Record<string, string> = {
 export default function AccountPage() {
   const locale = useLocale();
   const router = useRouter();
+  const t = useTranslations("account");
+  const tAuth = useTranslations("auth");
+  const tNav = useTranslations("nav");
+  const tAdmin = useTranslations("admin");
+
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,9 +85,9 @@ export default function AccountPage() {
       const { error } = await supabase.auth.updateUser({
         data: { full_name: fullName, phone, address, city, zip, country: "TW" },
       });
-      if (error) { toast.error("Failed to save profile."); return; }
-      toast.success("Profile updated.");
-    } catch { toast.error("Something went wrong."); }
+      if (error) { toast.error(t("profileError")); return; }
+      toast.success(t("profileSaved"));
+    } catch { toast.error(t("genericError")); }
     finally { setSaving(false); }
   };
 
@@ -109,30 +114,31 @@ export default function AccountPage() {
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">My Account</h1>
+            <h1 className="text-2xl font-bold text-white">{t("title")}</h1>
             <p className="mt-0.5 text-sm text-white/40">{user?.email}</p>
           </div>
           <button
             onClick={handleSignOut}
             className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-white/40 hover:border-white/20 hover:text-white transition-colors"
           >
-            <LogOut className="h-4 w-4" /> Sign Out
+            <LogOut className="h-4 w-4" />
+            <span>{tNav("signOut")}</span>
           </button>
         </div>
 
         {/* Tabs */}
         <div className="mb-6 flex gap-1 rounded-xl border border-white/10 bg-white/5 p-1">
-          {(["orders", "profile"] as const).map((t) => (
+          {(["orders", "profile"] as const).map((tabKey) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={tabKey}
+              onClick={() => setTab(tabKey)}
               className={[
                 "flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition-colors",
-                tab === t ? "bg-white/10 text-white" : "text-white/40 hover:text-white/70",
+                tab === tabKey ? "bg-white/10 text-white" : "text-white/40 hover:text-white/70",
               ].join(" ")}
             >
-              {t === "orders" ? <Package className="h-4 w-4" /> : <User className="h-4 w-4" />}
-              {t === "orders" ? "Orders" : "Profile"}
+              {tabKey === "orders" ? <Package className="h-4 w-4" /> : <User className="h-4 w-4" />}
+              {t(tabKey)}
             </button>
           ))}
         </div>
@@ -143,9 +149,9 @@ export default function AccountPage() {
             {orders.length === 0 ? (
               <div className="rounded-2xl border border-white/10 py-16 text-center">
                 <Package className="mx-auto h-10 w-10 text-white/20" />
-                <p className="mt-3 text-sm text-white/30">No orders yet.</p>
+                <p className="mt-3 text-sm text-white/30">{t("noOrders")}</p>
                 <Link href="/shop" className="mt-4 inline-block text-sm text-white underline underline-offset-2">
-                  Start shopping
+                  {t("startShopping")}
                 </Link>
               </div>
             ) : (
@@ -159,12 +165,14 @@ export default function AccountPage() {
                       {new Date(order.created_at).toLocaleDateString(locale === "zh-TW" ? "zh-TW" : "en-US", {
                         year: "numeric", month: "short", day: "numeric",
                       })}
-                      {order.is_preorder_order && <span className="ml-2 text-amber-400">Preorder</span>}
+                      {order.is_preorder_order && (
+                        <span className="ml-2 text-amber-400">{t("preorder")}</span>
+                      )}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium capitalize ${STATUS_COLORS[order.status] ?? "text-white/50 bg-white/5"}`}>
-                      {order.status.replace(/_/g, " ")}
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLORS[order.status] ?? "text-white/50 bg-white/5"}`}>
+                      {tAdmin(`orderStatus.${order.status as keyof object}`) ?? order.status.replace(/_/g, " ")}
                     </span>
                     <span className="text-sm font-semibold text-white">
                       {formatTWD(order.total_amount, locale)}
@@ -182,39 +190,39 @@ export default function AccountPage() {
           <form onSubmit={handleSaveProfile} className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label className="text-xs text-white/50">Full Name</Label>
+                <Label className="text-xs text-white/50">{tAuth("fullName")}</Label>
                 <Input value={fullName} onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Dan Reid"
+                  placeholder={tAuth("fullNamePlaceholder")}
                   className="border-white/20 bg-white/5 text-white placeholder:text-white/20" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-white/50">Phone</Label>
+                <Label className="text-xs text-white/50">{tAuth("phone")}</Label>
                 <Input value={phone} onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+886 912 345 678"
+                  placeholder={tAuth("phonePlaceholder")}
                   className="border-white/20 bg-white/5 text-white placeholder:text-white/20" />
               </div>
               <div className="space-y-1.5 sm:col-span-2">
-                <Label className="text-xs text-white/50">Address</Label>
+                <Label className="text-xs text-white/50">{tAuth("address")}</Label>
                 <Input value={address} onChange={(e) => setAddress(e.target.value)}
-                  placeholder="123 Main Street"
+                  placeholder={tAuth("addressPlaceholder")}
                   className="border-white/20 bg-white/5 text-white placeholder:text-white/20" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-white/50">City</Label>
+                <Label className="text-xs text-white/50">{tAuth("city")}</Label>
                 <Input value={city} onChange={(e) => setCity(e.target.value)}
-                  placeholder="Taipei"
+                  placeholder={tAuth("cityPlaceholder")}
                   className="border-white/20 bg-white/5 text-white placeholder:text-white/20" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-white/50">ZIP Code</Label>
+                <Label className="text-xs text-white/50">{tAuth("zip")}</Label>
                 <Input value={zip} onChange={(e) => setZip(e.target.value)}
-                  placeholder="10001"
+                  placeholder={tAuth("zipPlaceholder")}
                   className="border-white/20 bg-white/5 text-white placeholder:text-white/20" />
               </div>
             </div>
             <div className="border-t border-white/10 pt-4">
               <Button type="submit" disabled={saving} className="bg-white font-semibold text-slate-900 hover:bg-white/90">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="mr-2 h-4 w-4" /> Save Profile</>}
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="mr-2 h-4 w-4" />{t("saveProfile")}</>}
               </Button>
             </div>
           </form>
