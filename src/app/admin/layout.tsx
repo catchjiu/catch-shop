@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { LayoutGrid, Package, ShoppingBag, Tag, LogOut } from "lucide-react";
+import { LayoutGrid, Package, ShoppingBag, Tag, LogOut, Clock } from "lucide-react";
 import Link from "next/link";
 import { AdminMobileNav } from "@/components/admin/AdminMobileNav";
 
@@ -12,6 +12,7 @@ const navItems = [
   { href: "/admin/shop/products", label: "Products", icon: Tag },
   { href: "/admin/shop/inventory", label: "Inventory", icon: Package },
   { href: "/admin/shop/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/admin/preorders", label: "Preorders", icon: Clock },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

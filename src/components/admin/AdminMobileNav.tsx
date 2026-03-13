@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, LayoutGrid, Package, ShoppingBag, Tag, LogOut } from "lucide-react";
+import { Menu, X, LayoutGrid, Package, ShoppingBag, Tag, LogOut, Clock } from "lucide-react";
 
 const navItems = [
   { href: "/admin/shop", label: "Dashboard", icon: LayoutGrid },
   { href: "/admin/shop/products", label: "Products", icon: Tag },
   { href: "/admin/shop/inventory", label: "Inventory", icon: Package },
   { href: "/admin/shop/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/admin/preorders", label: "Preorders", icon: Clock },
 ];
 
 export function AdminMobileNav() {
