@@ -11,20 +11,25 @@ export default async function OrdersPage({
   const { filter = "all" } = await searchParams;
   const supabase = await createServiceClient();
 
-  let query = supabase
-    .from("orders")
-    .select("id, created_at, status, payment_method, payment_ref, total_amount, is_preorder_order, shipping_name, shipping_email, shipping_phone, shipping_address, shipping_city, shipping_zip, shipping_country, guest_email, user_id, academy, line_id")
-    .order("created_at", { ascending: false });
+  const baseSelect = "id, created_at, status, payment_method, payment_ref, total_amount, is_preorder_order, shipping_name, shipping_email, shipping_phone, shipping_address, shipping_city, shipping_zip, shipping_country, guest_email, user_id";
 
-  if (filter === "preorder") {
-    query = query.eq("is_preorder_order", true);
-  } else if (filter === "pending") {
-    query = query.eq("status", "pending_payment");
-  } else if (filter === "completed") {
-    query = query.eq("status", "completed");
+  // Try with newer optional columns first; fall back if they don't exist yet
+  let query = supabase.from("orders").select(`${baseSelect}, academy, line_id`).order("created_at", { ascending: false });
+  if (filter === "preorder") query = query.eq("is_preorder_order", true);
+  else if (filter === "pending") query = query.eq("status", "pending_payment");
+  else if (filter === "completed") query = query.eq("status", "completed");
+
+  let result = await query;
+  if (result.error) {
+    // Retry without optional new columns
+    let fallback = supabase.from("orders").select(baseSelect).order("created_at", { ascending: false });
+    if (filter === "preorder") fallback = fallback.eq("is_preorder_order", true);
+    else if (filter === "pending") fallback = fallback.eq("status", "pending_payment");
+    else if (filter === "completed") fallback = fallback.eq("status", "completed");
+    result = await fallback;
   }
 
-  const { data: orders } = await query;
+  const orders = result.data;
 
   return (
     <div className="space-y-6">

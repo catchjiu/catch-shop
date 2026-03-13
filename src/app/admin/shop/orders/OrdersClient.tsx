@@ -397,26 +397,52 @@ export function OrdersClient({ orders: initialOrders, currentFilter }: OrdersCli
     setDetailLoading(true);
     setSelectedOrder(null);
     const supabase = createClient();
-    const { data, error } = await supabase
-      .from("orders")
-      .select(`
-        id, created_at, status, payment_method, payment_ref, total_amount,
-        is_preorder_order, shipping_name, shipping_email, shipping_phone,
-        shipping_address, shipping_city, shipping_zip, shipping_country,
-        guest_email, user_id, academy, line_id,
-        order_items (
-          id, quantity, price_at_purchase, selected_options,
-          product_variants (
-            size, color,
-            products ( name_en, name_zh )
-          )
+
+    // Try full query first; fall back to a minimal query if newer columns don't exist yet
+    let data: unknown = null;
+    let error: unknown = null;
+
+    const fullSelect = `
+      id, created_at, status, payment_method, payment_ref, total_amount,
+      is_preorder_order, shipping_name, shipping_email, shipping_phone,
+      shipping_address, shipping_city, shipping_zip, shipping_country,
+      guest_email, user_id, academy, line_id,
+      order_items (
+        id, quantity, price_at_purchase,
+        product_variants (
+          size, color,
+          products ( name_en, name_zh )
         )
-      `)
-      .eq("id", orderId)
-      .single();
+      )
+    `;
+
+    const fallbackSelect = `
+      id, created_at, status, payment_method, payment_ref, total_amount,
+      is_preorder_order, shipping_name, shipping_email, shipping_phone,
+      shipping_address, shipping_city, shipping_zip, shipping_country,
+      guest_email, user_id,
+      order_items (
+        id, quantity, price_at_purchase,
+        product_variants (
+          size, color,
+          products ( name_en, name_zh )
+        )
+      )
+    `;
+
+    const r1 = await supabase.from("orders").select(fullSelect).eq("id", orderId).single();
+    if (r1.error) {
+      // Newer columns (academy, line_id) may not exist — retry without them
+      const r2 = await supabase.from("orders").select(fallbackSelect).eq("id", orderId).single();
+      data = r2.data;
+      error = r2.error;
+    } else {
+      data = r1.data;
+    }
 
     if (error || !data) {
-      toast.error("Failed to load order details");
+      toast.error("Could not load order — check browser console for details.");
+      console.error("openOrder error:", error);
     } else {
       setSelectedOrder(data as unknown as OrderDetail);
     }
