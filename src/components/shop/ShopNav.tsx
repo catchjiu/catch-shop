@@ -5,6 +5,7 @@ import { ShoppingCart } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { useCart } from "@/hooks/useCart";
 import { LocaleSwitcher } from "./LocaleSwitcher";
+import { UserMenu } from "./UserMenu";
 
 interface ShopNavProps {
   onCartOpen: () => void;
@@ -27,8 +28,9 @@ export function ShopNav({ onCartOpen }: ShopNavProps) {
           </Link>
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <LocaleSwitcher />
+          <UserMenu />
           <button
             onClick={onCartOpen}
             className="relative flex items-center gap-1.5 rounded-md border border-white/20 px-3 py-1.5 text-sm text-white/70 hover:border-white/40 hover:text-white transition-all"

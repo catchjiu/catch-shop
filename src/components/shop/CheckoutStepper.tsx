@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/hooks/useCart";
 import { formatTWD } from "@/lib/currency";
 import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
 import type { PaymentMethod } from "@/lib/supabase/types";
 
 type Step = "shipping" | "payment" | "review";
@@ -55,6 +56,25 @@ export function CheckoutStepper() {
     zip: "",
     country: "TW",
   });
+
+  // Pre-fill from logged-in user's profile
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      const m = user.user_metadata ?? {};
+      setShipping((prev) => ({
+        ...prev,
+        fullName: m.full_name ?? prev.fullName,
+        email: user.email ?? prev.email,
+        phone: m.phone ?? prev.phone,
+        address: m.address ?? prev.address,
+        city: m.city ?? prev.city,
+        zip: m.zip ?? prev.zip,
+        country: m.country ?? prev.country,
+      }));
+    });
+  }, []);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("manual_bank_transfer");
   const [bankLastFive, setBankLastFive] = useState("");
   const [preorderConfirmed, setPreorderConfirmed] = useState(false);
@@ -143,6 +163,23 @@ export function CheckoutStepper() {
       }
 
       clearCart();
+      // Silently update the user's saved profile with the latest shipping info
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.auth.updateUser({
+            data: {
+              full_name: shipping.fullName,
+              phone: shipping.phone,
+              address: shipping.address,
+              city: shipping.city,
+              zip: shipping.zip,
+              country: shipping.country,
+            },
+          });
+        }
+      } catch { /* non-critical */ }
       router.push(`/checkout/success?orderId=${data.orderId}`);
     } catch (err) {
       toast.error(t("errors.required"), {
