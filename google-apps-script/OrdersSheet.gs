@@ -39,8 +39,12 @@ var COLUMNS = [
   "ZIP",
   "Payment Method",
   "Bank Last 5",
-  "Items",
-  "Total (NT$)",
+  "Product Name",
+  "Color",
+  "Size",
+  "Qty",
+  "Options",
+  "Order Total (NT$)",
   "Last Updated",
 ];
 
@@ -138,58 +142,68 @@ function getOrCreateSheet() {
   return sheet;
 }
 
-// ── Upsert a single order row ─────────────────────────────────────────────────
+// ── Upsert an order — one row per item ───────────────────────────────────────
 function upsertOrder(sheet, order) {
   var shortId = order.id ? order.id.slice(0, 8).toUpperCase() : "";
-
-  var itemsText = "";
-  if (order.items && order.items.length) {
-    itemsText = order.items.map(function(i) {
-      var opts = i.selectedOptions && i.selectedOptions.length
-        ? " [" + i.selectedOptions.map(function(o) { return o.choice; }).join(", ") + "]"
-        : "";
-      return i.productName + " — " + i.color + " / " + i.size + " ×" + i.quantity + opts;
-    }).join("\n");
-  }
 
   var bankLastFive = "";
   if (order.paymentRef && order.paymentRef.indexOf("bank_last5:") === 0) {
     bankLastFive = order.paymentRef.replace("bank_last5:", "");
   }
 
-  var row = [
-    shortId,
-    order.createdAt ? new Date(order.createdAt).toLocaleString("zh-TW") : "",
-    order.status || "",
-    order.isPreorder ? "Yes" : "No",
-    order.customerName || "",
-    order.email || "",
-    order.phone || "",
-    order.lineId || "",
-    order.academy || "",
-    order.address || "",
-    order.city || "",
-    order.zip || "",
-    order.paymentMethod ? order.paymentMethod.replace(/_/g, " ") : "",
-    bankLastFive,
-    itemsText,
-    order.totalAmount || 0,
-    new Date().toLocaleString("zh-TW"),
-  ];
+  var dateStr = order.createdAt ? new Date(order.createdAt).toLocaleString("zh-TW") : "";
+  var now = new Date().toLocaleString("zh-TW");
+  var paymentMethod = order.paymentMethod ? order.paymentMethod.replace(/_/g, " ") : "";
 
+  // Delete all existing rows for this order (column 1 matches shortId)
   var data = sheet.getDataRange().getValues();
-  var existingRow = -1;
-  for (var i = 1; i < data.length; i++) {
+  var rowsToDelete = [];
+  for (var i = data.length - 1; i >= 1; i--) {
     if (String(data[i][0]) === shortId) {
-      existingRow = i + 1;
-      break;
+      rowsToDelete.push(i + 1); // 1-indexed
     }
   }
+  for (var d = 0; d < rowsToDelete.length; d++) {
+    sheet.deleteRow(rowsToDelete[d]);
+  }
 
-  if (existingRow > 0) {
-    sheet.getRange(existingRow, 1, 1, COLUMNS.length).setValues([row]);
-    colorStatusCell(sheet, existingRow, order.status);
-  } else {
+  // Build one row per item
+  var items = (order.items && order.items.length) ? order.items : [null];
+  for (var j = 0; j < items.length; j++) {
+    var item = items[j];
+    var productName = item ? (item.productName || "") : "";
+    var color       = item ? (item.color || "")       : "";
+    var size        = item ? (item.size || "")        : "";
+    var qty         = item ? (item.quantity || 1)     : "";
+    var opts        = "";
+    if (item && item.selectedOptions && item.selectedOptions.length) {
+      opts = item.selectedOptions.map(function(o) { return o.group + ": " + o.choice; }).join(", ");
+    }
+
+    var row = [
+      shortId,
+      dateStr,
+      order.status || "",
+      order.isPreorder ? "Yes" : "No",
+      order.customerName || "",
+      order.email || "",
+      order.phone || "",
+      order.lineId || "",
+      order.academy || "",
+      order.address || "",
+      order.city || "",
+      order.zip || "",
+      paymentMethod,
+      bankLastFive,
+      productName,
+      color,
+      size,
+      qty,
+      opts,
+      j === 0 ? (order.totalAmount || 0) : "", // total only on first item row
+      now,
+    ];
+
     sheet.appendRow(row);
     colorStatusCell(sheet, sheet.getLastRow(), order.status);
   }
@@ -203,23 +217,27 @@ function formatHeaderRow(sheet) {
   header.setFontColor("#ffffff");
   sheet.setFrozenRows(1);
 
-  sheet.setColumnWidth(1,  100);
-  sheet.setColumnWidth(2,  150);
-  sheet.setColumnWidth(3,  130);
-  sheet.setColumnWidth(4,  90);
-  sheet.setColumnWidth(5,  140);
-  sheet.setColumnWidth(6,  200);
-  sheet.setColumnWidth(7,  120);
-  sheet.setColumnWidth(8,  120);
-  sheet.setColumnWidth(9,  140);
-  sheet.setColumnWidth(10, 200);
-  sheet.setColumnWidth(11, 100);
-  sheet.setColumnWidth(12, 80);
-  sheet.setColumnWidth(13, 150);
-  sheet.setColumnWidth(14, 100);
-  sheet.setColumnWidth(15, 280);
-  sheet.setColumnWidth(16, 100);
-  sheet.setColumnWidth(17, 150);
+  sheet.setColumnWidth(1,  100); // Order ID
+  sheet.setColumnWidth(2,  150); // Date
+  sheet.setColumnWidth(3,  130); // Status
+  sheet.setColumnWidth(4,   90); // Is Preorder
+  sheet.setColumnWidth(5,  150); // Customer Name
+  sheet.setColumnWidth(6,  200); // Email
+  sheet.setColumnWidth(7,  120); // Phone
+  sheet.setColumnWidth(8,  120); // LINE ID
+  sheet.setColumnWidth(9,  140); // Academy
+  sheet.setColumnWidth(10, 200); // Address
+  sheet.setColumnWidth(11, 100); // City
+  sheet.setColumnWidth(12,  80); // ZIP
+  sheet.setColumnWidth(13, 150); // Payment Method
+  sheet.setColumnWidth(14, 100); // Bank Last 5
+  sheet.setColumnWidth(15, 180); // Product Name
+  sheet.setColumnWidth(16, 120); // Color
+  sheet.setColumnWidth(17,  80); // Size
+  sheet.setColumnWidth(18,  50); // Qty
+  sheet.setColumnWidth(19, 180); // Options
+  sheet.setColumnWidth(20, 120); // Order Total
+  sheet.setColumnWidth(21, 150); // Last Updated
 }
 
 function colorStatusCell(sheet, rowNum, status) {

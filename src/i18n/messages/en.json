@@ -23,7 +23,10 @@
     "lowStock": "Only {count} left",
     "viewDetails": "View Details",
     "backToShop": "Back to Shop",
-    "noProducts": "No products available."
+    "noProducts": "No products available.",
+    "saleBadge": "SALE",
+    "saleTitle": "On Sale",
+    "allProductsTitle": "All Products"
   },
   "cart": {
     "title": "Your Cart",

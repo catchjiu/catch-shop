@@ -23,7 +23,10 @@
     "lowStock": "僅剩 {count} 件",
     "viewDetails": "查看詳情",
     "backToShop": "返回商店",
-    "noProducts": "目前沒有商品。"
+    "noProducts": "目前沒有商品。",
+    "saleBadge": "特賣",
+    "saleTitle": "特賣商品",
+    "allProductsTitle": "全部商品"
   },
   "cart": {
     "title": "購物車",

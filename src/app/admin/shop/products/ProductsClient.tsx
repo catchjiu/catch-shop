@@ -168,6 +168,9 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
   const [descEn, setDescEn] = useState(product?.description_en ?? "");
   const [descZh, setDescZh] = useState(product?.description_zh ?? "");
   const [price, setPrice] = useState(String(product?.price_twd ?? ""));
+  const [compareAtPrice, setCompareAtPrice] = useState(
+    product?.compare_at_price_twd ? String(product.compare_at_price_twd) : ""
+  );
   const [imageUrl, setImageUrl] = useState(product?.base_image_url ?? "");
   const [isPreorder, setIsPreorder] = useState(product?.is_preorder ?? false);
   const [preorderNoteEn, setPreorderNoteEn] = useState(product?.preorder_note_en ?? "");
@@ -327,6 +330,7 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
         description_en: descEn.trim() || null,
         description_zh: descZh.trim() || null,
         price_twd: priceNum,
+        compare_at_price_twd: compareAtPrice ? (parseInt(compareAtPrice) || null) : null,
         base_image_url: imageUrl.trim() || null,
         is_preorder: isPreorder,
         preorder_note_en: isPreorder ? preorderNoteEn.trim() || null : null,
@@ -451,7 +455,7 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-white/50">Price (TWD) *</Label>
+              <Label className="text-xs text-white/50">Sale Price (TWD) *</Label>
               <Input
                 type="number"
                 min={1}
@@ -462,7 +466,35 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
                 className="border-white/20 bg-white/5 text-white placeholder:text-white/20"
               />
             </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-white/50">
+                Original Price (TWD)
+                <span className="ml-1.5 text-white/30">— leave blank if not on sale</span>
+              </Label>
+              <Input
+                type="number"
+                min={1}
+                value={compareAtPrice}
+                onChange={(e) => setCompareAtPrice(e.target.value)}
+                placeholder="e.g. 4500"
+                className="border-white/20 bg-white/5 text-white placeholder:text-white/20"
+              />
+            </div>
           </div>
+          {compareAtPrice && parseInt(compareAtPrice) > 0 && (
+            <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm">
+              <span className="rounded bg-red-500 px-1.5 py-0.5 text-xs font-bold text-white">SALE</span>
+              <span className="text-white/60">
+                NT$ {parseInt(compareAtPrice).toLocaleString()} →{" "}
+                <span className="font-semibold text-white">NT$ {(parseInt(price) || 0).toLocaleString()}</span>
+                {parseInt(compareAtPrice) > (parseInt(price) || 0) && (
+                  <span className="ml-1.5 text-red-400 font-medium">
+                    ({Math.round((1 - (parseInt(price) || 0) / parseInt(compareAtPrice)) * 100)}% off)
+                  </span>
+                )}
+              </span>
+            </div>
+          )}
 
           {/* Descriptions */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -974,7 +1006,17 @@ export function ProductsClient({ products: initialProducts }: ProductsClientProp
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-white truncate">{product.name_en}</p>
                         <p className="text-xs text-white/40 truncate">{product.name_zh}</p>
-                        <p className="mt-1 text-sm font-semibold text-white/80">NT$ {product.price_twd.toLocaleString()}</p>
+                        <div className="mt-1 flex items-center gap-2">
+                          {product.compare_at_price_twd && product.compare_at_price_twd > product.price_twd ? (
+                            <>
+                              <span className="rounded bg-red-500 px-1 py-0.5 text-[10px] font-bold text-white">SALE</span>
+                              <span className="text-sm font-semibold text-red-400">NT$ {product.price_twd.toLocaleString()}</span>
+                              <span className="text-xs text-white/30 line-through">NT$ {product.compare_at_price_twd.toLocaleString()}</span>
+                            </>
+                          ) : (
+                            <span className="text-sm font-semibold text-white/80">NT$ {product.price_twd.toLocaleString()}</span>
+                          )}
+                        </div>
                       </div>
 
                       {/* Action buttons — always visible on mobile */}
@@ -1094,7 +1136,17 @@ export function ProductsClient({ products: initialProducts }: ProductsClientProp
                           </div>
                         </td>
                         <td className="px-4 py-3 font-mono text-xs text-white/40">{product.slug}</td>
-                        <td className="px-4 py-3 text-center text-white/80">NT$ {product.price_twd.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-center">
+                          {product.compare_at_price_twd && product.compare_at_price_twd > product.price_twd ? (
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="rounded bg-red-500 px-1 py-0.5 text-[10px] font-bold text-white leading-none">SALE</span>
+                              <span className="text-sm font-semibold text-red-400">NT$ {product.price_twd.toLocaleString()}</span>
+                              <span className="text-xs text-white/30 line-through">NT$ {product.compare_at_price_twd.toLocaleString()}</span>
+                            </div>
+                          ) : (
+                            <span className="text-white/80">NT$ {product.price_twd.toLocaleString()}</span>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-center">
                           <button
                             onClick={() => setExpandedId(isExpanded ? null : product.id)}
@@ -1116,6 +1168,9 @@ export function ProductsClient({ products: initialProducts }: ProductsClientProp
                               <Badge variant="secondary" className="bg-white/5 text-white/30 border-white/10">Hidden</Badge>
                             )}
                             {product.is_preorder && <Badge variant="preorder">Preorder</Badge>}
+                            {product.compare_at_price_twd && product.compare_at_price_twd > product.price_twd && (
+                              <Badge variant="default" className="bg-red-500/20 text-red-400 border-red-500/20">Sale</Badge>
+                            )}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right">

@@ -32,6 +32,7 @@ export interface Product {
   description_en: string | null;
   description_zh: string | null;
   price_twd: number;
+  compare_at_price_twd: number | null;
   base_image_url: string | null;
   is_preorder: boolean;
   preorder_note_en: string | null;

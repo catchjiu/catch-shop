@@ -177,25 +177,47 @@ export function ProductDetailClient({ product, locale }: ProductDetailClientProp
             <span className="text-8xl font-black text-white/5 select-none">MATSIDE</span>
           </div>
         )}
-        {product.is_preorder && (
-          <div className="absolute top-4 left-4">
+        <div className="absolute top-4 left-4 flex flex-col gap-2">
+          {product.compare_at_price_twd && product.compare_at_price_twd > product.price_twd && (
+            <Badge className="bg-red-500 text-white border-red-500 font-bold text-sm px-2 py-1">
+              {Math.round((1 - product.price_twd / product.compare_at_price_twd) * 100)}% OFF
+            </Badge>
+          )}
+          {product.is_preorder && (
             <Badge variant="preorder">{t("preorderBadge")}</Badge>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* ── Details ────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-6">
         <div>
           <h1 className="text-3xl font-black text-white sm:text-4xl">{name}</h1>
-          <p className="mt-2 text-3xl font-bold text-white/90">
-            {formatTWD(product.price_twd + optionsPriceAdd, locale)}
-            {optionsPriceAdd > 0 && (
-              <span className="ml-2 text-lg text-white/40 line-through font-normal">
+          <div className="mt-2 flex flex-wrap items-baseline gap-3">
+            <span className={[
+              "text-3xl font-bold",
+              product.compare_at_price_twd && product.compare_at_price_twd > product.price_twd
+                ? "text-red-400"
+                : "text-white/90",
+            ].join(" ")}>
+              {formatTWD(product.price_twd + optionsPriceAdd, locale)}
+            </span>
+            {product.compare_at_price_twd && product.compare_at_price_twd > product.price_twd && (
+              <>
+                <span className="text-xl text-white/30 line-through font-normal">
+                  {formatTWD(product.compare_at_price_twd + optionsPriceAdd, locale)}
+                </span>
+                <span className="rounded bg-red-500 px-2 py-0.5 text-sm font-bold text-white">
+                  {Math.round((1 - product.price_twd / product.compare_at_price_twd) * 100)}% OFF
+                </span>
+              </>
+            )}
+            {optionsPriceAdd > 0 && !(product.compare_at_price_twd && product.compare_at_price_twd > product.price_twd) && (
+              <span className="text-xl text-white/40 line-through font-normal">
                 {formatTWD(product.price_twd, locale)}
               </span>
             )}
-          </p>
+          </div>
         </div>
 
         {product.is_preorder && preorderNote && (

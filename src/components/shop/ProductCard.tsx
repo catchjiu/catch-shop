@@ -82,6 +82,11 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
 
         {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+          {product.compare_at_price_twd && product.compare_at_price_twd > product.price_twd && (
+            <Badge className="bg-red-500 text-white border-red-500 font-bold">
+              {Math.round((1 - product.price_twd / product.compare_at_price_twd) * 100)}% OFF
+            </Badge>
+          )}
           {product.is_preorder && (
             <Badge variant="preorder">{t("shop.preorderBadge")}</Badge>
           )}
@@ -106,9 +111,20 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div>
           <h3 className="font-semibold text-white leading-tight line-clamp-2">{name}</h3>
-          <p className="mt-1 text-lg font-bold text-white/90">
-            {formatTWD(product.price_twd, locale)}
-          </p>
+          {product.compare_at_price_twd && product.compare_at_price_twd > product.price_twd ? (
+            <div className="mt-1 flex items-baseline gap-2">
+              <span className="text-lg font-bold text-red-400">
+                {formatTWD(product.price_twd, locale)}
+              </span>
+              <span className="text-sm text-white/30 line-through font-normal">
+                {formatTWD(product.compare_at_price_twd, locale)}
+              </span>
+            </div>
+          ) : (
+            <p className="mt-1 text-lg font-bold text-white/90">
+              {formatTWD(product.price_twd, locale)}
+            </p>
+          )}
         </div>
 
         {/* Color swatches */}
