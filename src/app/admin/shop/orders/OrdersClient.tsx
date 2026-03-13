@@ -148,6 +148,12 @@ function StatusSelect({
 
 // ─── Detail panel ─────────────────────────────────────────────────────────────
 
+interface CustomerProfile {
+  phone: string | null;
+  line_id: string | null;
+  academy: string | null;
+}
+
 function OrderDetailPanel({
   order,
   onClose,
@@ -161,12 +167,15 @@ function OrderDetailPanel({
 }) {
   const [pastOrders, setPastOrders] = useState<PastOrder[] | null>(null);
   const [loadingPast, setLoadingPast] = useState(false);
+  const [profile, setProfile] = useState<CustomerProfile | null>(null);
 
-  // Load past orders lazily on first open
+  // On mount: load past orders + enrich profile from user_metadata if fields are missing
   useState(() => {
     const load = async () => {
       setLoadingPast(true);
       const supabase = createClient();
+
+      // Past orders
       const email = order.shipping_email;
       const { data } = await supabase
         .from("orders")
@@ -181,6 +190,21 @@ function OrderDetailPanel({
         .limit(10);
       setPastOrders((data ?? []) as PastOrder[]);
       setLoadingPast(false);
+
+      // If order is missing line_id / academy, fetch from user profile
+      if (order.user_id && (!order.line_id || !order.academy)) {
+        try {
+          const res = await fetch(`/api/admin/customer/${order.user_id}`);
+          if (res.ok) {
+            const p = await res.json();
+            setProfile({
+              phone: p.phone ?? null,
+              line_id: p.line_id ?? null,
+              academy: p.academy ?? null,
+            });
+          }
+        } catch { /* non-critical */ }
+      }
     };
     load();
   });
@@ -248,9 +272,9 @@ function OrderDetailPanel({
           <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-4 space-y-3">
             <InfoRow icon={<Mail className="h-4 w-4" />} label="Name" value={order.shipping_name} />
             <InfoRow icon={<Mail className="h-4 w-4" />} label="Email" value={order.shipping_email} />
-            <InfoRow icon={<Phone className="h-4 w-4" />} label="Phone" value={order.shipping_phone} />
-            <InfoRow icon={<MessageSquare className="h-4 w-4" />} label="LINE ID" value={order.line_id} />
-            <InfoRow icon={<GraduationCap className="h-4 w-4" />} label="Academy" value={order.academy} />
+            <InfoRow icon={<Phone className="h-4 w-4" />} label="Phone" value={order.shipping_phone ?? profile?.phone} />
+            <InfoRow icon={<MessageSquare className="h-4 w-4" />} label="LINE ID" value={order.line_id ?? profile?.line_id} />
+            <InfoRow icon={<GraduationCap className="h-4 w-4" />} label="Academy" value={order.academy ?? profile?.academy} />
             <InfoRow
               icon={<MapPin className="h-4 w-4" />}
               label="Address"
