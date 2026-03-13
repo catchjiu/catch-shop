@@ -106,11 +106,13 @@ export async function POST(request: NextRequest) {
   };
 
   try {
-    await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const body = JSON.stringify(payload);
+    const headers = { "Content-Type": "application/json" };
+    let res = await fetch(webhookUrl, { method: "POST", headers, body, redirect: "manual" });
+    if (res.status === 301 || res.status === 302 || res.status === 307 || res.status === 308) {
+      const loc = res.headers.get("location");
+      if (loc) res = await fetch(loc, { method: "POST", headers, body });
+    }
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Webhook: sheets push failed", err);
