@@ -12,6 +12,45 @@ import { formatTWD } from "@/lib/currency";
 import { toast } from "sonner";
 import type { ProductWithVariants } from "@/lib/supabase/types";
 
+// ── Size groupings ────────────────────────────────────────────────────────────
+const YOUTH_SIZES   = ["Y-XS", "Y-S", "Y-M", "Y-L"];
+const ADULT_SIZES   = ["XS", "S", "M", "L", "XL", "XXL"];
+const GI_ADULT_M    = ["A0", "A1", "A1L", "A2", "A3", "A4"];
+const GI_KIDS       = ["M000", "M00", "M0", "M1", "M2", "M3"];
+const GI_FEMALE     = ["F1", "F2", "F3"];
+
+function detectSizeType(sizes: string[]): "gi" | "nogi" | "plain" {
+  const s = sizes.map((x) => x.toUpperCase());
+  if (s.some((x) => /^(A\d|F\d|M0{0,3}\d?)/.test(x))) return "gi";
+  if (s.some((x) => x.startsWith("Y-"))) return "nogi";
+  return "plain";
+}
+
+function buildSizeGroups(
+  sizes: string[],
+  type: "gi" | "nogi" | "plain",
+  locale: string
+): { label: string; sizes: string[] }[] {
+  if (type === "gi") {
+    const inGi = (arr: string[]) => arr.filter((s) => sizes.includes(s));
+    return [
+      { label: locale === "zh-TW" ? "成人男裝" : "Adult Male",  sizes: inGi(GI_ADULT_M) },
+      { label: locale === "zh-TW" ? "兒童"     : "Kids",         sizes: inGi(GI_KIDS)    },
+      { label: locale === "zh-TW" ? "女裝"     : "Female",       sizes: inGi(GI_FEMALE)  },
+    ].filter((g) => g.sizes.length > 0);
+  }
+  if (type === "nogi") {
+    const inNoGi = (arr: string[]) => arr.filter((s) => sizes.includes(s));
+    return [
+      { label: locale === "zh-TW" ? "青少年" : "Youth", sizes: inNoGi(YOUTH_SIZES) },
+      { label: locale === "zh-TW" ? "成人"   : "Adult", sizes: inNoGi(ADULT_SIZES) },
+    ].filter((g) => g.sizes.length > 0);
+  }
+  // plain — single unnamed group preserving original order
+  return [{ label: "", sizes }];
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Same color map as ProductCard
 const COLOR_CSS: Record<string, string> = {
   white: "#F8F8F8", black: "#1C1C1C", blue: "#1D4ED8", navy: "#1E3A5F",
@@ -185,44 +224,57 @@ export function ProductDetailClient({ product, locale }: ProductDetailClientProp
           </div>
         )}
 
-        {/* Size selector */}
-        {sizesForColor.length > 0 && (
-          <div>
-            <label className="mb-3 block text-sm font-medium text-white/70">
-              {t("selectSize")}
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {sizesForColor.map((size) => {
-                const variant = product.product_variants.find(
-                  (v) => v.color === selectedColor && v.size === size
-                );
-                const available = product.is_preorder || (variant?.stock_quantity ?? 0) > 0;
-                return (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    disabled={!available}
-                    className={[
-                      "rounded-lg border px-4 py-2 text-sm font-medium transition-all",
-                      selectedSize === size
-                        ? "border-white bg-white text-slate-900"
-                        : available
-                        ? "border-white/20 text-white/70 hover:border-white/50"
-                        : "border-white/10 text-white/25 line-through cursor-not-allowed",
-                    ].join(" ")}
-                  >
-                    {size}
-                  </button>
-                );
-              })}
+        {/* Size selector — grouped */}
+        {sizesForColor.length > 0 && (() => {
+          const sizeType = detectSizeType(sizesForColor);
+          const groups = buildSizeGroups(sizesForColor, sizeType, locale);
+          return (
+            <div className="space-y-4">
+              <label className="block text-sm font-medium text-white/70">
+                {t("selectSize")}
+              </label>
+              {groups.map((group) => (
+                <div key={group.label}>
+                  {group.label && (
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/35">
+                      {group.label}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {group.sizes.map((size) => {
+                      const variant = product.product_variants.find(
+                        (v) => v.color === selectedColor && v.size === size
+                      );
+                      const available = product.is_preorder || (variant?.stock_quantity ?? 0) > 0;
+                      return (
+                        <button
+                          key={size}
+                          onClick={() => setSelectedSize(size)}
+                          disabled={!available}
+                          className={[
+                            "rounded-lg border px-4 py-2 text-sm font-medium transition-all",
+                            selectedSize === size
+                              ? "border-white bg-white text-slate-900"
+                              : available
+                              ? "border-white/20 text-white/70 hover:border-white/50"
+                              : "border-white/10 text-white/25 line-through cursor-not-allowed",
+                          ].join(" ")}
+                        >
+                          {size}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              {lowStock && (
+                <p className="text-sm text-amber-400">
+                  {t("lowStock", { count: selectedVariant?.stock_quantity })}
+                </p>
+              )}
             </div>
-            {lowStock && (
-              <p className="mt-2 text-sm text-amber-400">
-                {t("lowStock", { count: selectedVariant?.stock_quantity })}
-              </p>
-            )}
-          </div>
-        )}
+          );
+        })()}
 
         {/* Add to cart */}
         <Button
