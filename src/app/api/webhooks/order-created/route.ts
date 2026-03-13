@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-function getServiceClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  return createClient(url, key, { auth: { persistSession: false } });
-}
 
 export async function POST(request: NextRequest) {
-  // Verify the webhook secret to prevent abuse
+  // Verify the webhook secret
   const secret = request.headers.get("x-webhook-secret");
   if (!secret || secret !== process.env.WEBHOOK_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -16,7 +9,8 @@ export async function POST(request: NextRequest) {
 
   const webhookUrl = process.env.GOOGLE_SHEETS_WEBHOOK_URL;
   if (!webhookUrl) {
-    return NextResponse.json({ error: "GOOGLE_SHEETS_WEBHOOK_URL not set" }, { status: 500 });
+    // Not an error — sheets sync is optional
+    return NextResponse.json({ success: true, skipped: "no webhook url" });
   }
 
   let body: { record?: { id?: string } };
@@ -31,91 +25,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No order ID in payload" }, { status: 400 });
   }
 
-  const db = getServiceClient();
+  const webhookSecret = process.env.WEBHOOK_SECRET!;
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://mat-side.com").replace(/\/$/, "");
+  const exportApiUrl = `${siteUrl}/api/admin/orders-export`;
 
-  // Fetch the full order
-  const { data: order, error } = await db
-    .from("orders")
-    .select(`
-      id, created_at, status, payment_method, payment_ref,
-      total_amount, is_preorder_order,
-      shipping_name, shipping_email, shipping_phone,
-      shipping_address, shipping_city, shipping_zip,
-      order_items (
-        quantity, price_at_purchase,
-        product_variants (
-          size, color,
-          products ( name_en )
-        )
-      )
-    `)
-    .eq("id", orderId)
-    .single();
-
-  if (error || !order) {
-    console.error("Webhook: failed to fetch order", orderId, error);
-    return NextResponse.json({ error: "Order not found" }, { status: 404 });
-  }
-
-  // Try optional columns
-  let academy: string | null = null;
-  let lineId: string | null = null;
-  try {
-    const { data: ext } = await db
-      .from("orders")
-      .select("academy, line_id")
-      .eq("id", orderId)
-      .single();
-    academy = (ext as { academy: string | null })?.academy ?? null;
-    lineId = (ext as { line_id: string | null })?.line_id ?? null;
-  } catch { /* columns may not exist */ }
-
-  const items = (order.order_items ?? []).map((oi: {
-    quantity: number;
-    price_at_purchase: number;
-    product_variants: {
-      size: string;
-      color: string;
-      products: { name_en: string } | null;
-    } | null;
-  }) => ({
-    productName: oi.product_variants?.products?.name_en ?? "Product",
-    color: oi.product_variants?.color ?? "",
-    size: oi.product_variants?.size ?? "",
-    quantity: oi.quantity,
-    selectedOptions: [],
-  }));
-
-  const payload = {
-    id: order.id,
-    createdAt: order.created_at,
-    status: order.status,
-    isPreorder: order.is_preorder_order,
-    customerName: order.shipping_name,
-    email: order.shipping_email,
-    phone: order.shipping_phone ?? "",
-    lineId: lineId ?? "",
-    academy: academy ?? "",
-    address: order.shipping_address,
-    city: order.shipping_city,
-    zip: order.shipping_zip ?? "",
-    paymentMethod: order.payment_method,
-    paymentRef: order.payment_ref ?? "",
-    totalAmount: order.total_amount,
-    items,
-  };
+  // Use GET — Apps Script pulls the single order from our export endpoint
+  const gasUrl = new URL(webhookUrl);
+  gasUrl.searchParams.set("action", "single");
+  gasUrl.searchParams.set("apiUrl", exportApiUrl);
+  gasUrl.searchParams.set("secret", webhookSecret);
+  gasUrl.searchParams.set("orderId", orderId);
 
   try {
-    const body = JSON.stringify(payload);
-    const headers = { "Content-Type": "application/json" };
-    let res = await fetch(webhookUrl, { method: "POST", headers, body, redirect: "manual" });
-    if (res.status === 301 || res.status === 302 || res.status === 307 || res.status === 308) {
-      const loc = res.headers.get("location");
-      if (loc) res = await fetch(loc, { method: "POST", headers, body });
-    }
+    const res = await fetch(gasUrl.toString(), { method: "GET" });
+    const text = await res.text();
+    console.log(`[webhook] Apps Script response (${res.status}):`, text.slice(0, 200));
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("Webhook: sheets push failed", err);
+    console.error("[webhook] sheets push failed", err);
     return NextResponse.json({ error: "Sheets push failed" }, { status: 500 });
   }
 }

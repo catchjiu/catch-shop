@@ -10,19 +10,20 @@
 //    - Type: Web App
 //    - Execute as: Me
 //    - Who has access: Anyone
-// 6. Click Deploy, copy the Web App URL.
-// 7. Add it to Coolify env vars: GOOGLE_SHEETS_WEBHOOK_URL=<paste URL here>
+// 6. Click Deploy → authorize when prompted → copy the Web App URL.
+// 7. Add to Coolify env vars:
+//      GOOGLE_SHEETS_WEBHOOK_URL=<paste URL here>
+//      WEBHOOK_SECRET=<your secret>
 // 8. In Supabase Dashboard → Database → Webhooks:
 //    - Name: order_sync
-//    - Table: orders
-//    - Events: INSERT, UPDATE
-//    - Method: POST
+//    - Table: orders, Events: INSERT, UPDATE
 //    - URL: https://your-site.com/api/webhooks/order-created
-//    - HTTP Headers: x-webhook-secret: <same value as WEBHOOK_SECRET in your .env>
+//    - HTTP Headers: x-webhook-secret: <WEBHOOK_SECRET value>
 // ─────────────────────────────────────────────────────────────────────────────
 
 var SHEET_NAME = "Orders";
 
+// ── Columns definition ────────────────────────────────────────────────────────
 var COLUMNS = [
   "Order ID",
   "Date",
@@ -43,54 +44,109 @@ var COLUMNS = [
   "Last Updated",
 ];
 
-// ── Entry point ───────────────────────────────────────────────────────────────
+// ── doGet: handles all sync requests (GET has no redirect issues) ─────────────
+//
+// Modes:
+//   ?action=sync&apiUrl=...&secret=...   → pull ALL orders and write to sheet
+//   ?action=single&apiUrl=...&secret=... → pull ONE order (orderId required)
+//   (no action)                          → health-check / authorization test
+//
+function doGet(e) {
+  var params = e ? e.parameter : {};
+  var action = params.action || "";
 
-function doPost(e) {
-  try {
-    var payload = JSON.parse(e.postData.contents);
-
-    // Accept a single order object or an array (bulk sync)
-    var orders = Array.isArray(payload) ? payload : [payload];
-
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName(SHEET_NAME);
-
-    // Create sheet + header row if it doesn't exist yet
-    if (!sheet) {
-      sheet = ss.insertSheet(SHEET_NAME);
-      sheet.appendRow(COLUMNS);
-      formatHeaderRow(sheet);
-    } else if (sheet.getLastRow() === 0) {
-      sheet.appendRow(COLUMNS);
-      formatHeaderRow(sheet);
+  if (action === "sync" || action === "single") {
+    var apiUrl = params.apiUrl || "";
+    var secret = params.secret || "";
+    if (!apiUrl || !secret) {
+      return json({ error: "Missing apiUrl or secret" });
     }
+    var fetchUrl = apiUrl + "?secret=" + encodeURIComponent(secret);
+    if (params.orderId) {
+      fetchUrl += "&orderId=" + encodeURIComponent(params.orderId);
+    }
+    return syncFromUrl(fetchUrl);
+  }
 
-    orders.forEach(function (order) {
-      upsertOrder(sheet, order);
-    });
-
+  // Health check — also triggers authorization for Google Sheets
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
     return ContentService
-      .createTextOutput(JSON.stringify({ success: true, count: orders.length }))
-      .setMimeType(ContentService.MimeType.JSON);
-
+      .createTextOutput("✅ Script is authorized and connected to: " + ss.getName())
+      .setMimeType(ContentService.MimeType.TEXT);
   } catch (err) {
     return ContentService
-      .createTextOutput(JSON.stringify({ error: err.message }))
-      .setMimeType(ContentService.MimeType.JSON);
+      .createTextOutput("❌ Error: " + err.message)
+      .setMimeType(ContentService.MimeType.TEXT);
   }
 }
 
-// ── Upsert a single order row ─────────────────────────────────────────────────
+// ── doPost: kept for backward-compatibility / direct pushes ──────────────────
+function doPost(e) {
+  try {
+    var payload = JSON.parse(e.postData.contents);
+    var orders = Array.isArray(payload) ? payload : [payload];
+    var sheet = getOrCreateSheet();
+    orders.forEach(function(order) { upsertOrder(sheet, order); });
+    return json({ success: true, count: orders.length });
+  } catch (err) {
+    return json({ error: err.message });
+  }
+}
 
+// ── Core: fetch orders from our API and write to sheet ────────────────────────
+function syncFromUrl(fetchUrl) {
+  try {
+    var response = UrlFetchApp.fetch(fetchUrl, { muteHttpExceptions: true });
+    var code = response.getResponseCode();
+    if (code !== 200) {
+      return json({ error: "API returned " + code + ": " + response.getContentText() });
+    }
+
+    var orders = JSON.parse(response.getContentText());
+    if (!Array.isArray(orders)) {
+      return json({ error: "Unexpected API response", raw: response.getContentText() });
+    }
+
+    var sheet = getOrCreateSheet();
+    orders.forEach(function(order) { upsertOrder(sheet, order); });
+    return json({ success: true, count: orders.length });
+
+  } catch (err) {
+    return json({ error: err.message });
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function json(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function getOrCreateSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_NAME);
+    sheet.appendRow(COLUMNS);
+    formatHeaderRow(sheet);
+  } else if (sheet.getLastRow() === 0) {
+    sheet.appendRow(COLUMNS);
+    formatHeaderRow(sheet);
+  }
+  return sheet;
+}
+
+// ── Upsert a single order row ─────────────────────────────────────────────────
 function upsertOrder(sheet, order) {
   var shortId = order.id ? order.id.slice(0, 8).toUpperCase() : "";
 
-  // Format items as readable text
   var itemsText = "";
   if (order.items && order.items.length) {
-    itemsText = order.items.map(function (i) {
+    itemsText = order.items.map(function(i) {
       var opts = i.selectedOptions && i.selectedOptions.length
-        ? " [" + i.selectedOptions.map(function (o) { return o.choice; }).join(", ") + "]"
+        ? " [" + i.selectedOptions.map(function(o) { return o.choice; }).join(", ") + "]"
         : "";
       return i.productName + " — " + i.color + " / " + i.size + " ×" + i.quantity + opts;
     }).join("\n");
@@ -121,34 +177,25 @@ function upsertOrder(sheet, order) {
     new Date().toLocaleString("zh-TW"),
   ];
 
-  // Check if row with this Order ID already exists
   var data = sheet.getDataRange().getValues();
   var existingRow = -1;
   for (var i = 1; i < data.length; i++) {
     if (String(data[i][0]) === shortId) {
-      existingRow = i + 1; // 1-indexed
+      existingRow = i + 1;
       break;
     }
   }
 
   if (existingRow > 0) {
-    // Update existing row
     sheet.getRange(existingRow, 1, 1, COLUMNS.length).setValues([row]);
-  } else {
-    // Append new row
-    sheet.appendRow(row);
-    // Colour status cell
-    colorStatusCell(sheet, sheet.getLastRow(), order.status);
-  }
-
-  // Always refresh status colour on update too
-  if (existingRow > 0) {
     colorStatusCell(sheet, existingRow, order.status);
+  } else {
+    sheet.appendRow(row);
+    colorStatusCell(sheet, sheet.getLastRow(), order.status);
   }
 }
 
 // ── Formatting helpers ────────────────────────────────────────────────────────
-
 function formatHeaderRow(sheet) {
   var header = sheet.getRange(1, 1, 1, COLUMNS.length);
   header.setFontWeight("bold");
@@ -156,28 +203,27 @@ function formatHeaderRow(sheet) {
   header.setFontColor("#ffffff");
   sheet.setFrozenRows(1);
 
-  // Column widths
-  sheet.setColumnWidth(1,  100);  // Order ID
-  sheet.setColumnWidth(2,  150);  // Date
-  sheet.setColumnWidth(3,  130);  // Status
-  sheet.setColumnWidth(4,  90);   // Is Preorder
-  sheet.setColumnWidth(5,  140);  // Customer Name
-  sheet.setColumnWidth(6,  200);  // Email
-  sheet.setColumnWidth(7,  120);  // Phone
-  sheet.setColumnWidth(8,  120);  // LINE ID
-  sheet.setColumnWidth(9,  140);  // Academy
-  sheet.setColumnWidth(10, 200);  // Address
-  sheet.setColumnWidth(11, 100);  // City
-  sheet.setColumnWidth(12, 80);   // ZIP
-  sheet.setColumnWidth(13, 150);  // Payment Method
-  sheet.setColumnWidth(14, 100);  // Bank Last 5
-  sheet.setColumnWidth(15, 280);  // Items
-  sheet.setColumnWidth(16, 100);  // Total
-  sheet.setColumnWidth(17, 150);  // Last Updated
+  sheet.setColumnWidth(1,  100);
+  sheet.setColumnWidth(2,  150);
+  sheet.setColumnWidth(3,  130);
+  sheet.setColumnWidth(4,  90);
+  sheet.setColumnWidth(5,  140);
+  sheet.setColumnWidth(6,  200);
+  sheet.setColumnWidth(7,  120);
+  sheet.setColumnWidth(8,  120);
+  sheet.setColumnWidth(9,  140);
+  sheet.setColumnWidth(10, 200);
+  sheet.setColumnWidth(11, 100);
+  sheet.setColumnWidth(12, 80);
+  sheet.setColumnWidth(13, 150);
+  sheet.setColumnWidth(14, 100);
+  sheet.setColumnWidth(15, 280);
+  sheet.setColumnWidth(16, 100);
+  sheet.setColumnWidth(17, 150);
 }
 
 function colorStatusCell(sheet, rowNum, status) {
-  var cell = sheet.getRange(rowNum, 3); // Status is column 3
+  var cell = sheet.getRange(rowNum, 3);
   var colors = {
     "pending_payment":  ["#7c5100", "#fff3cd"],
     "processing":       ["#0d3b6e", "#cce5ff"],
