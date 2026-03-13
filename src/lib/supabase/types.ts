@@ -8,6 +8,22 @@ export type OrderStatus =
 
 export type PaymentMethod = "manual_bank_transfer" | "newebpay";
 
+export interface ProductOptionChoice {
+  label: string;
+  priceAdd: number;
+}
+
+export interface ProductOptionGroup {
+  name: string;
+  choices: ProductOptionChoice[];
+}
+
+export interface SelectedOption {
+  name: string;
+  choice: string;
+  priceAdd: number;
+}
+
 export interface Product {
   id: string;
   slug: string;
@@ -21,6 +37,7 @@ export interface Product {
   preorder_note_en: string | null;
   preorder_note_zh: string | null;
   is_active: boolean;
+  options: ProductOptionGroup[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -68,6 +85,7 @@ export interface OrderItem {
   variant_id: string;
   quantity: number;
   price_at_purchase: number;
+  selected_options: SelectedOption[] | null;
   created_at: string;
 }
 

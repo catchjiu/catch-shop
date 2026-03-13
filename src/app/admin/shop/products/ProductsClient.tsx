@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState, useTransition, useCallback } from "react";
+import { Fragment, useState, useTransition, useCallback, useRef } from "react";
 import Image from "next/image";
 import {
   Plus, Pencil, Trash2, Package, X, Save, ChevronDown, ChevronUp,
@@ -14,7 +14,7 @@ import { ImageUploader } from "@/components/admin/ImageUploader";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import type { Product, ProductVariant } from "@/lib/supabase/types";
+import type { Product, ProductVariant, ProductOptionGroup } from "@/lib/supabase/types";
 
 type ProductWithVariants = Product & { product_variants: ProductVariant[] };
 
@@ -174,6 +174,40 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
   const [preorderNoteZh, setPreorderNoteZh] = useState(product?.preorder_note_zh ?? "");
   const [isActive, setIsActive] = useState(product?.is_active ?? true);
 
+  const [options, setOptions] = useState<ProductOptionGroup[]>(
+    (product?.options ?? []) as ProductOptionGroup[]
+  );
+
+  const addOptionGroup = () => {
+    setOptions((prev) => [...prev, { name: "", choices: [{ label: "", priceAdd: 0 }] }]);
+  };
+  const removeOptionGroup = (gi: number) => {
+    setOptions((prev) => prev.filter((_, i) => i !== gi));
+  };
+  const updateGroupName = (gi: number, name: string) => {
+    setOptions((prev) => prev.map((g, i) => i === gi ? { ...g, name } : g));
+  };
+  const addChoice = (gi: number) => {
+    setOptions((prev) => prev.map((g, i) =>
+      i === gi ? { ...g, choices: [...g.choices, { label: "", priceAdd: 0 }] } : g
+    ));
+  };
+  const removeChoice = (gi: number, ci: number) => {
+    setOptions((prev) => prev.map((g, i) =>
+      i === gi ? { ...g, choices: g.choices.filter((_, j) => j !== ci) } : g
+    ));
+  };
+  const updateChoice = (gi: number, ci: number, field: "label" | "priceAdd", val: string) => {
+    setOptions((prev) => prev.map((g, i) =>
+      i === gi ? {
+        ...g,
+        choices: g.choices.map((c, j) =>
+          j === ci ? { ...c, [field]: field === "priceAdd" ? parseInt(val) || 0 : val } : c
+        ),
+      } : g
+    ));
+  };
+
   const initVariants = (): DraftVariant[] =>
     (product?.product_variants ?? []).map((v) => ({ ...v, _key: v.id }));
 
@@ -298,6 +332,7 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
         preorder_note_en: isPreorder ? preorderNoteEn.trim() || null : null,
         preorder_note_zh: isPreorder ? preorderNoteZh.trim() || null : null,
         is_active: isActive,
+        options: options.length > 0 ? options : null,
       };
 
       let productId: string;
@@ -500,6 +535,85 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
               </div>
             </div>
           )}
+
+          {/* Product Options */}
+          <div className="space-y-3 rounded-xl border border-white/10 p-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs text-white/50">Product Options</Label>
+              <button
+                type="button"
+                onClick={addOptionGroup}
+                className="flex items-center gap-1 rounded-lg border border-white/20 px-2.5 py-1 text-xs text-white/60 hover:border-white/40 hover:text-white transition-colors"
+              >
+                <Plus className="h-3 w-3" /> Add Option Group
+              </button>
+            </div>
+
+            {options.length === 0 && (
+              <p className="text-xs text-white/25 italic">
+                No options. Add one to give customers a choice (e.g. &quot;Item&quot;: Shorts / Rash Guard / Both).
+              </p>
+            )}
+
+            {options.map((group, gi) => (
+              <div key={gi} className="rounded-lg border border-white/10 bg-white/5 p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={group.name}
+                    onChange={(e) => updateGroupName(gi, e.target.value)}
+                    placeholder="Option name (e.g. Item)"
+                    className="h-8 flex-1 border-white/20 bg-white/10 text-white placeholder:text-white/20 text-sm font-semibold"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeOptionGroup(gi)}
+                    className="text-white/30 hover:text-red-400 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-1.5">
+                  {group.choices.map((choice, ci) => (
+                    <div key={ci} className="flex items-center gap-2">
+                      <Input
+                        value={choice.label}
+                        onChange={(e) => updateChoice(gi, ci, "label", e.target.value)}
+                        placeholder="Choice label (e.g. Rash Guard)"
+                        className="h-7 flex-1 border-white/20 bg-white/5 text-white placeholder:text-white/20 text-xs"
+                      />
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-white/30">+TWD</span>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={choice.priceAdd}
+                          onChange={(e) => updateChoice(gi, ci, "priceAdd", e.target.value)}
+                          className="h-7 w-20 border-white/20 bg-white/5 text-white text-xs"
+                        />
+                      </div>
+                      {group.choices.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeChoice(gi, ci)}
+                          className="text-white/30 hover:text-red-400 transition-colors"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => addChoice(gi)}
+                  className="flex items-center gap-1 text-xs text-white/40 hover:text-white transition-colors"
+                >
+                  <Plus className="h-3 w-3" /> Add choice
+                </button>
+              </div>
+            ))}
+          </div>
 
           {/* Color Images */}
           {uniqueColors.length > 0 && (

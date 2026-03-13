@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/hooks/useCart";
 import { formatTWD } from "@/lib/currency";
 import { toast } from "sonner";
-import type { ProductWithVariants } from "@/lib/supabase/types";
+import type { ProductWithVariants, ProductOptionGroup, SelectedOption } from "@/lib/supabase/types";
 
 // ── Size groupings ────────────────────────────────────────────────────────────
 const YOUTH_SIZES   = ["Y-XS", "Y-S", "Y-M", "Y-L"];
@@ -96,6 +96,23 @@ export function ProductDetailClient({ product, locale }: ProductDetailClientProp
     return firstForColor?.size ?? "";
   });
 
+  // Product options (e.g. "Item": Rash Guard / Shorts / Both)
+  const optionGroups: ProductOptionGroup[] = (product.options ?? []) as ProductOptionGroup[];
+  const [selectedOptions, setSelectedOptions] = useState<SelectedOption[]>(() =>
+    optionGroups.map((g) => ({
+      name: g.name,
+      choice: g.choices[0]?.label ?? "",
+      priceAdd: g.choices[0]?.priceAdd ?? 0,
+    }))
+  );
+  const optionsPriceAdd = selectedOptions.reduce((sum, o) => sum + (o.priceAdd ?? 0), 0);
+
+  const handleOptionChange = (groupName: string, choiceLabel: string, priceAdd: number) => {
+    setSelectedOptions((prev) =>
+      prev.map((o) => o.name === groupName ? { ...o, choice: choiceLabel, priceAdd } : o)
+    );
+  };
+
   // Update size when color changes (pick first available size for new color)
   const handleColorChange = (color: string) => {
     setSelectedColor(color);
@@ -132,8 +149,9 @@ export function ProductDetailClient({ product, locale }: ProductDetailClientProp
       size: selectedVariant.size,
       color: selectedVariant.color,
       imageUrl: colorImage,
-      price: product.price_twd,
+      price: product.price_twd + optionsPriceAdd,
       isPreorder: product.is_preorder,
+      selectedOptions,
     });
     toast.success(locale === "zh-TW" ? "已加入購物車" : "Added to cart", {
       description: `${name} — ${selectedVariant.color} / ${selectedVariant.size}`,
@@ -171,7 +189,12 @@ export function ProductDetailClient({ product, locale }: ProductDetailClientProp
         <div>
           <h1 className="text-3xl font-black text-white sm:text-4xl">{name}</h1>
           <p className="mt-2 text-3xl font-bold text-white/90">
-            {formatTWD(product.price_twd, locale)}
+            {formatTWD(product.price_twd + optionsPriceAdd, locale)}
+            {optionsPriceAdd > 0 && (
+              <span className="ml-2 text-lg text-white/40 line-through font-normal">
+                {formatTWD(product.price_twd, locale)}
+              </span>
+            )}
           </p>
         </div>
 
@@ -287,6 +310,49 @@ export function ProductDetailClient({ product, locale }: ProductDetailClientProp
             </div>
           );
         })()}
+
+        {/* Product option selectors (e.g. Item: Rash Guard / Shorts / Both) */}
+        {optionGroups.length > 0 && (
+          <div className="space-y-4">
+            {optionGroups.map((group) => {
+              const current = selectedOptions.find((o) => o.name === group.name);
+              return (
+                <div key={group.name}>
+                  <label className="mb-3 block text-sm font-medium text-white/70">
+                    {group.name}
+                    {current && (
+                      <span className="ml-2 text-white font-semibold">{current.choice}</span>
+                    )}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {group.choices.map((choice) => {
+                      const isSelected = current?.choice === choice.label;
+                      return (
+                        <button
+                          key={choice.label}
+                          onClick={() => handleOptionChange(group.name, choice.label, choice.priceAdd)}
+                          className={[
+                            "rounded-lg border px-4 py-2 text-sm font-medium transition-all",
+                            isSelected
+                              ? "border-white bg-white text-slate-900"
+                              : "border-white/20 text-white/70 hover:border-white/50 hover:text-white",
+                          ].join(" ")}
+                        >
+                          {choice.label}
+                          {choice.priceAdd > 0 && (
+                            <span className={`ml-1.5 text-xs ${isSelected ? "text-slate-600" : "text-white/40"}`}>
+                              +{formatTWD(choice.priceAdd, locale)}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Add to cart */}
         <Button

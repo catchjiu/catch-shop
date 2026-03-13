@@ -8,6 +8,7 @@ interface OrderItem {
   variantId: string;
   quantity: number;
   price: number;
+  selectedOptions?: Array<{ name: string; choice: string; priceAdd: number }>;
 }
 
 interface OrderRequestBody {
@@ -120,7 +121,8 @@ export async function POST(request: NextRequest) {
       order_id: order.id,
       variant_id: item.variantId,
       quantity: item.quantity,
-      price_at_purchase: Math.round(item.price), // ensure integer
+      price_at_purchase: Math.round(item.price), // includes any option price adds
+      selected_options: item.selectedOptions?.length ? item.selectedOptions : null,
     }));
 
     const { error: itemsError } = await db

@@ -4,8 +4,10 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import type { SelectedOption } from "@/lib/supabase/types";
 
 export interface CartItem {
+  cartKey: string;          // unique: variantId + options fingerprint
   variantId: string;
   productId: string;
   productSlug: string;
@@ -14,9 +16,16 @@ export interface CartItem {
   size: string;
   color: string;
   imageUrl: string | null;
-  price: number;
+  price: number;            // base price + sum of priceAdds
   quantity: number;
   isPreorder: boolean;
+  selectedOptions: SelectedOption[];
+}
+
+function makeCartKey(variantId: string, selectedOptions: SelectedOption[]): string {
+  if (!selectedOptions || selectedOptions.length === 0) return variantId;
+  const sorted = [...selectedOptions].sort((a, b) => a.name.localeCompare(b.name));
+  return `${variantId}::${JSON.stringify(sorted)}`;
 }
 
 interface CartState {
@@ -24,9 +33,9 @@ interface CartState {
   guestEmail: string | null;
   memberId: string | null;
 
-  addItem: (item: Omit<CartItem, "quantity">) => void;
-  removeItem: (variantId: string) => void;
-  updateQuantity: (variantId: string, quantity: number) => void;
+  addItem: (item: Omit<CartItem, "quantity" | "cartKey">) => void;
+  removeItem: (cartKey: string) => void;
+  updateQuantity: (cartKey: string, quantity: number) => void;
   clearCart: () => void;
   setGuestEmail: (email: string) => void;
   setMemberId: (id: string | null) => void;
@@ -44,35 +53,34 @@ export const useCart = create<CartState>()(
       memberId: null,
 
       addItem: (newItem) => {
+        const cartKey = makeCartKey(newItem.variantId, newItem.selectedOptions ?? []);
         set((state) => {
-          const existing = state.items.find((i) => i.variantId === newItem.variantId);
+          const existing = state.items.find((i) => i.cartKey === cartKey);
           if (existing) {
             return {
               items: state.items.map((i) =>
-                i.variantId === newItem.variantId
-                  ? { ...i, quantity: i.quantity + 1 }
-                  : i
+                i.cartKey === cartKey ? { ...i, quantity: i.quantity + 1 } : i
               ),
             };
           }
-          return { items: [...state.items, { ...newItem, quantity: 1 }] };
+          return { items: [...state.items, { ...newItem, cartKey, quantity: 1 }] };
         });
       },
 
-      removeItem: (variantId) => {
+      removeItem: (cartKey) => {
         set((state) => ({
-          items: state.items.filter((i) => i.variantId !== variantId),
+          items: state.items.filter((i) => i.cartKey !== cartKey),
         }));
       },
 
-      updateQuantity: (variantId, quantity) => {
+      updateQuantity: (cartKey, quantity) => {
         if (quantity <= 0) {
-          get().removeItem(variantId);
+          get().removeItem(cartKey);
           return;
         }
         set((state) => ({
           items: state.items.map((i) =>
-            i.variantId === variantId ? { ...i, quantity } : i
+            i.cartKey === cartKey ? { ...i, quantity } : i
           ),
         }));
       },

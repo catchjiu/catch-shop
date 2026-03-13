@@ -29,10 +29,13 @@ interface Order {
   payment_ref: string | null;
 }
 
+interface SelectedOpt { name: string; choice: string; priceAdd: number; }
+
 interface OrderItem {
   id: string;
   quantity: number;
   price_at_purchase: number;
+  selected_options: SelectedOpt[] | null;
   product_variants: {
     size: string;
     color: string;
@@ -129,7 +132,7 @@ export default function AccountPage() {
         shipping_name, shipping_email, shipping_phone,
         shipping_address, shipping_city, shipping_zip, shipping_country,
         order_items (
-          id, quantity, price_at_purchase,
+          id, quantity, price_at_purchase, selected_options,
           product_variants (
             size, color,
             products ( name_en, name_zh )
@@ -422,6 +425,15 @@ export default function AccountPage() {
                               <p className="text-xs text-white/40">
                                 {item.product_variants?.size} · {item.product_variants?.color} × {item.quantity}
                               </p>
+                              {item.selected_options && item.selected_options.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {item.selected_options.map((opt) => (
+                                    <span key={opt.name} className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-white/50">
+                                      {opt.choice}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                             <span className="text-sm font-semibold text-white">
                               {formatTWD(item.price_at_purchase * item.quantity, locale)}

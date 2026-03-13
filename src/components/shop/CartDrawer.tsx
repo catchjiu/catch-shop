@@ -68,7 +68,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                   const name = locale === "zh-TW" ? item.nameZh : item.nameEn;
                   return (
                     <motion.div
-                      key={item.variantId}
+                      key={item.cartKey ?? item.variantId}
                       layout
                       initial={{ opacity: 0, x: 40 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -104,6 +104,16 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                             </span>
                           )}
                         </p>
+                        {item.selectedOptions && item.selectedOptions.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {item.selectedOptions.map((opt) => (
+                              <span key={opt.name} className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-white/60">
+                                {opt.choice}
+                                {opt.priceAdd > 0 && ` +${opt.priceAdd}`}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         <p className="text-sm font-semibold text-white/80">
                           {formatTWD(item.price, locale)}
                         </p>
@@ -111,7 +121,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                         {/* Quantity controls */}
                         <div className="mt-auto flex items-center gap-2">
                           <button
-                            onClick={() => updateQuantity(item.variantId, item.quantity - 1)}
+                            onClick={() => updateQuantity(item.cartKey ?? item.variantId, item.quantity - 1)}
                             className="flex h-6 w-6 items-center justify-center rounded-md border border-white/20 text-white/60 hover:border-white/40 hover:text-white transition-colors"
                           >
                             <Minus className="h-3 w-3" />
@@ -120,13 +130,13 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                             {item.quantity}
                           </span>
                           <button
-                            onClick={() => updateQuantity(item.variantId, item.quantity + 1)}
+                            onClick={() => updateQuantity(item.cartKey ?? item.variantId, item.quantity + 1)}
                             className="flex h-6 w-6 items-center justify-center rounded-md border border-white/20 text-white/60 hover:border-white/40 hover:text-white transition-colors"
                           >
                             <Plus className="h-3 w-3" />
                           </button>
                           <button
-                            onClick={() => removeItem(item.variantId)}
+                            onClick={() => removeItem(item.cartKey ?? item.variantId)}
                             className="ml-auto flex h-6 w-6 items-center justify-center text-white/30 hover:text-red-400 transition-colors"
                           >
                             <Trash2 className="h-3.5 w-3.5" />

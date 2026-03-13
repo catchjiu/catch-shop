@@ -145,6 +145,7 @@ export function CheckoutStepper() {
             variantId: i.variantId,
             quantity: i.quantity,
             price: i.price,
+            selectedOptions: i.selectedOptions ?? [],
           })),
           totalAmount,
           isPreorderOrder: hasPreorder,
