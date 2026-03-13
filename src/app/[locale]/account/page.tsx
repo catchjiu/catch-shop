@@ -8,6 +8,7 @@ import { Link } from "@/i18n/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { AcademySelect } from "@/components/shop/AcademySelect";
 import { ShopClientWrapper } from "@/app/[locale]/shop/ShopClientWrapper";
 import { formatTWD } from "@/lib/currency";
 import {
@@ -85,6 +86,7 @@ export default function AccountPage() {
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [zip, setZip] = useState("");
+  const [academy, setAcademy] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -99,6 +101,7 @@ export default function AccountPage() {
       setAddress(meta.address ?? "");
       setCity(meta.city ?? "");
       setZip(meta.zip ?? "");
+      setAcademy(meta.academy ?? "");
 
       const { data } = await supabase
         .from("orders")
@@ -172,7 +175,7 @@ export default function AccountPage() {
     try {
       const supabase = createClient();
       const { error } = await supabase.auth.updateUser({
-        data: { full_name: fullName, phone, address, city, zip, country: "TW" },
+        data: { full_name: fullName, phone, address, city, zip, country: "TW", academy: academy || null },
       });
       if (error) { toast.error(t("profileError")); return; }
       toast.success(t("profileSaved"));
@@ -323,6 +326,15 @@ export default function AccountPage() {
                   className="border-white/20 bg-white/5 text-white placeholder:text-white/20" />
               </div>
             </div>
+
+            <AcademySelect
+              value={academy}
+              onChange={setAcademy}
+              label={tAuth("academy")}
+              placeholder={tAuth("academyPlaceholder")}
+              otherPlaceholder={tAuth("academyOtherPlaceholder")}
+            />
+
             <div className="border-t border-white/10 pt-4">
               <Button type="submit" disabled={saving} className="bg-white font-semibold text-slate-900 hover:bg-white/90">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="mr-2 h-4 w-4" />{t("saveProfile")}</>}
