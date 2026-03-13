@@ -30,10 +30,12 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       const supabase = createClient();
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
       const { error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          emailRedirectTo: `${siteUrl}/auth/callback`,
           data: {
             full_name: fullName,
             phone,

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { Link } from "@/i18n/navigation";
@@ -13,12 +13,19 @@ import { Mail, Lock, Loader2 } from "lucide-react";
 export default function LoginPage() {
   const locale = useLocale();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations("auth");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("error") === "link_expired") {
+      setError("Confirmation link has expired. Please register again.");
+    }
+  }, [searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
