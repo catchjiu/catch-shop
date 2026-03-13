@@ -50,7 +50,10 @@
       "address": "地址",
       "city": "城市",
       "zip": "郵遞區號",
-      "country": "國家"
+      "country": "國家",
+      "academy": "道館（選填）",
+      "academyPlaceholder": "選擇您的道館",
+      "academyOtherPlaceholder": "請輸入您的道館名稱"
     },
     "payment": {
       "title": "選擇付款方式",
@@ -144,6 +147,9 @@
     "zip": "郵遞區號",
     "zipPlaceholder": "100",
     "shippingHint": "運送資訊（可加快結帳速度）",
+    "academy": "道館",
+    "academyPlaceholder": "選擇您的道館（選填）",
+    "academyOtherPlaceholder": "請輸入您的道館名稱",
     "signIn": "登入",
     "createAccount": "建立帳戶",
     "noAccount": "還沒有帳戶？",

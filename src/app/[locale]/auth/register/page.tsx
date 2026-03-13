@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Mail, Lock, User, Phone, MapPin, Loader2 } from "lucide-react";
+import { AcademySelect } from "@/components/shop/AcademySelect";
 
 export default function RegisterPage() {
   const t = useTranslations("auth");
@@ -19,6 +20,7 @@ export default function RegisterPage() {
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [zip, setZip] = useState("");
+  const [academy, setAcademy] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -43,6 +45,7 @@ export default function RegisterPage() {
             city,
             zip,
             country: "TW",
+            academy: academy || null,
           },
         },
       });
@@ -153,6 +156,16 @@ export default function RegisterPage() {
                     placeholder={t("zipPlaceholder")}
                     className="border-white/20 bg-white/5 text-white placeholder:text-white/20" />
                 </div>
+              </div>
+
+              <div className="mt-3">
+                <AcademySelect
+                  value={academy}
+                  onChange={setAcademy}
+                  label={t("academy")}
+                  placeholder={t("academyPlaceholder")}
+                  otherPlaceholder={t("academyOtherPlaceholder")}
+                />
               </div>
             </div>
 

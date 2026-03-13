@@ -50,7 +50,10 @@
       "address": "Street Address",
       "city": "City",
       "zip": "ZIP / Postal Code",
-      "country": "Country"
+      "country": "Country",
+      "academy": "Academy (optional)",
+      "academyPlaceholder": "Select your academy",
+      "academyOtherPlaceholder": "Enter your academy name"
     },
     "payment": {
       "title": "Select Payment Method",
@@ -144,6 +147,9 @@
     "zip": "ZIP Code",
     "zipPlaceholder": "10001",
     "shippingHint": "Shipping info (saves time at checkout)",
+    "academy": "Academy",
+    "academyPlaceholder": "Select your academy (optional)",
+    "academyOtherPlaceholder": "Enter your academy name",
     "signIn": "Sign In",
     "createAccount": "Create Account",
     "noAccount": "No account?",

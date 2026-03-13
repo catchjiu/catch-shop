@@ -15,6 +15,7 @@ import { useCart } from "@/hooks/useCart";
 import { formatTWD } from "@/lib/currency";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { AcademySelect } from "@/components/shop/AcademySelect";
 import type { PaymentMethod } from "@/lib/supabase/types";
 
 type Step = "shipping" | "payment" | "review";
@@ -27,6 +28,7 @@ interface ShippingData {
   city: string;
   zip: string;
   country: string;
+  academy: string;
 }
 
 const STEPS: Step[] = ["shipping", "payment", "review"];
@@ -55,6 +57,7 @@ export function CheckoutStepper() {
     city: "",
     zip: "",
     country: "TW",
+    academy: "",
   });
 
   // Pre-fill from logged-in user's profile
@@ -72,6 +75,7 @@ export function CheckoutStepper() {
         city: m.city ?? prev.city,
         zip: m.zip ?? prev.zip,
         country: m.country ?? prev.country,
+        academy: m.academy ?? prev.academy,
       }));
     });
   }, []);
@@ -176,6 +180,7 @@ export function CheckoutStepper() {
               city: shipping.city,
               zip: shipping.zip,
               country: shipping.country,
+              academy: shipping.academy || null,
             },
           });
         }
@@ -358,6 +363,16 @@ function ShippingStep({ data, errors, onChange, onNext, t }: ShippingStepProps) 
           />
         </FormField>
       </div>
+
+      {/* Academy — full width, optional */}
+      <AcademySelect
+        value={data.academy ?? ""}
+        onChange={(v) => onChange("academy", v)}
+        label={t("shipping.academy")}
+        placeholder={t("shipping.academyPlaceholder")}
+        otherPlaceholder={t("shipping.academyOtherPlaceholder")}
+      />
+
       <Button
         onClick={onNext}
         className="w-full bg-white text-slate-900 hover:bg-white/90 font-semibold"

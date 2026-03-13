@@ -19,6 +19,7 @@ interface OrderRequestBody {
     city: string;
     zip: string;
     country: string;
+    academy?: string;
   };
   paymentMethod: PaymentMethod;
   bankLastFive?: string;
@@ -99,6 +100,7 @@ export async function POST(request: NextRequest) {
         payment_method: paymentMethod,
         payment_ref: bankLastFive ? `bank_last5:${bankLastFive}` : null,
         is_preorder_order: isPreorderOrder,
+        academy: shipping.academy || null,
       })
       .select()
       .single();
