@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Clock, Package, Truck, CheckCircle, XCircle, AlertCircle,
   ChevronDown, X, MapPin, CreditCard, Building2, Phone, MessageSquare,
-  GraduationCap, Mail, ShoppingBag, Loader2, ChevronRight,
+  GraduationCap, Mail, ShoppingBag, Loader2, ChevronRight, Sheet,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -398,6 +398,24 @@ export function OrdersClient({ orders: initialOrders, currentFilter }: OrdersCli
   const [isPending, startTransition] = useTransition();
   const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSyncToSheets = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/admin/sync-sheets", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "Sync failed");
+      } else {
+        toast.success(`Synced ${data.synced} orders to Google Sheets`);
+      }
+    } catch {
+      toast.error("Could not reach sync endpoint");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleStatusChange = (orderId: string, newStatus: OrderStatus) => {
     const supabase = createClient();
@@ -480,12 +498,25 @@ export function OrdersClient({ orders: initialOrders, currentFilter }: OrdersCli
   return (
     <>
       <Tabs value={currentFilter} onValueChange={handleFilterChange}>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <TabsList className="bg-white/5 border border-white/10">
           <TabsTrigger value="all" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/50">All Orders</TabsTrigger>
           <TabsTrigger value="preorder" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/50">Preorder</TabsTrigger>
           <TabsTrigger value="pending" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/50">Pending</TabsTrigger>
           <TabsTrigger value="completed" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/50">Completed</TabsTrigger>
         </TabsList>
+
+        <button
+          onClick={handleSyncToSheets}
+          disabled={syncing}
+          className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm font-medium text-green-400 hover:bg-green-500/20 transition-colors disabled:opacity-50"
+        >
+          {syncing
+            ? <Loader2 className="h-4 w-4 animate-spin" />
+            : <Sheet className="h-4 w-4" />}
+          {syncing ? "Syncing…" : "Sync to Google Sheets"}
+        </button>
+      </div>
 
         <TabsContent value={currentFilter} className="mt-4">
           <div className="rounded-xl border border-white/10 overflow-hidden">
