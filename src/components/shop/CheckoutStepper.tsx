@@ -542,30 +542,51 @@ function ReviewStep({
 
       {/* Preorder confirmation */}
       {hasPreorder && (
-        <div
+        <button
+          type="button"
+          onClick={() => setPreorderConfirmed((v) => !v)}
           className={[
-            "rounded-xl border p-4",
-            preorderError ? "border-red-500/50 bg-red-500/10" : "border-amber-500/30 bg-amber-500/10",
+            "w-full rounded-xl border-2 p-4 text-left transition-all",
+            preorderConfirmed
+              ? "border-amber-400 bg-amber-400/15"
+              : preorderError
+              ? "border-red-500 bg-red-500/10"
+              : "border-amber-500/40 bg-amber-500/8 hover:border-amber-400/70",
           ].join(" ")}
         >
-          <div className="flex items-start gap-3">
-            <Checkbox
-              id="preorder-confirm"
-              checked={preorderConfirmed}
-              onCheckedChange={(v) => setPreorderConfirmed(Boolean(v))}
-              className="mt-0.5"
-            />
-            <label
-              htmlFor="preorder-confirm"
-              className="cursor-pointer text-sm text-amber-300"
+          <div className="flex items-start gap-4">
+            {/* Big visible checkbox */}
+            <span
+              className={[
+                "mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md border-2 transition-all",
+                preorderConfirmed
+                  ? "border-amber-400 bg-amber-400"
+                  : preorderError
+                  ? "border-red-500 bg-transparent"
+                  : "border-amber-500/60 bg-transparent",
+              ].join(" ")}
+              aria-hidden
             >
+              {preorderConfirmed && (
+                <svg viewBox="0 0 12 10" className="h-3.5 w-3.5" fill="none" stroke="#0f172a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="1 5 4.5 9 11 1" />
+                </svg>
+              )}
+            </span>
+
+            <span className={[
+              "text-sm leading-relaxed font-medium",
+              preorderConfirmed ? "text-amber-300" : preorderError ? "text-red-300" : "text-amber-400/80",
+            ].join(" ")}>
               {t("review.preorderConfirm")}
-            </label>
+            </span>
           </div>
           {preorderError && (
-            <p className="mt-2 text-xs text-red-400">{t("errors.preorderRequired")}</p>
+            <p className="mt-3 pl-10 text-xs font-semibold text-red-400">
+              ↑ {t("errors.preorderRequired")}
+            </p>
           )}
-        </div>
+        </button>
       )}
 
       <div className="flex gap-3">
