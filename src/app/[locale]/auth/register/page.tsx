@@ -21,6 +21,7 @@ export default function RegisterPage() {
   const [city, setCity] = useState("");
   const [zip, setZip] = useState("");
   const [academy, setAcademy] = useState("");
+  const [lineId, setLineId] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -46,6 +47,7 @@ export default function RegisterPage() {
             zip,
             country: "TW",
             academy: academy || null,
+            line_id: lineId || null,
           },
         },
       });
@@ -158,7 +160,7 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              <div className="mt-3">
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <AcademySelect
                   value={academy}
                   onChange={setAcademy}
@@ -166,6 +168,15 @@ export default function RegisterPage() {
                   placeholder={t("academyPlaceholder")}
                   otherPlaceholder={t("academyOtherPlaceholder")}
                 />
+                <div className="space-y-2">
+                  <p className="text-xs text-white/50">{t("lineId")}</p>
+                  <Input
+                    value={lineId}
+                    onChange={(e) => setLineId(e.target.value)}
+                    placeholder={t("lineIdPlaceholder")}
+                    className="border-white/20 bg-white/5 text-white placeholder:text-white/20"
+                  />
+                </div>
               </div>
             </div>
 

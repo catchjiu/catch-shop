@@ -53,7 +53,9 @@
       "country": "國家",
       "academy": "道館（選填）",
       "academyPlaceholder": "選擇您的道館",
-      "academyOtherPlaceholder": "請輸入您的道館名稱"
+      "academyOtherPlaceholder": "請輸入您的道館名稱",
+      "lineId": "LINE ID（選填）",
+      "lineIdPlaceholder": "例如：catchbjj"
     },
     "payment": {
       "title": "選擇付款方式",
@@ -150,6 +152,8 @@
     "academy": "道館",
     "academyPlaceholder": "選擇您的道館（選填）",
     "academyOtherPlaceholder": "請輸入您的道館名稱",
+    "lineId": "LINE ID（選填）",
+    "lineIdPlaceholder": "例如：catchbjj",
     "signIn": "登入",
     "createAccount": "建立帳戶",
     "noAccount": "還沒有帳戶？",

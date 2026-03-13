@@ -29,6 +29,7 @@ interface ShippingData {
   zip: string;
   country: string;
   academy: string;
+  lineId: string;
 }
 
 const STEPS: Step[] = ["shipping", "payment", "review"];
@@ -58,6 +59,7 @@ export function CheckoutStepper() {
     zip: "",
     country: "TW",
     academy: "",
+    lineId: "",
   });
 
   // Pre-fill from logged-in user's profile
@@ -76,6 +78,7 @@ export function CheckoutStepper() {
         zip: m.zip ?? prev.zip,
         country: m.country ?? prev.country,
         academy: m.academy ?? prev.academy,
+        lineId: m.line_id ?? prev.lineId,
       }));
     });
   }, []);
@@ -181,6 +184,7 @@ export function CheckoutStepper() {
               zip: shipping.zip,
               country: shipping.country,
               academy: shipping.academy || null,
+              line_id: shipping.lineId || null,
             },
           });
         }
@@ -364,14 +368,24 @@ function ShippingStep({ data, errors, onChange, onNext, t }: ShippingStepProps) 
         </FormField>
       </div>
 
-      {/* Academy — full width, optional */}
-      <AcademySelect
-        value={data.academy ?? ""}
-        onChange={(v) => onChange("academy", v)}
-        label={t("shipping.academy")}
-        placeholder={t("shipping.academyPlaceholder")}
-        otherPlaceholder={t("shipping.academyOtherPlaceholder")}
-      />
+      {/* Academy & LINE ID — optional */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <AcademySelect
+          value={data.academy ?? ""}
+          onChange={(v) => onChange("academy", v)}
+          label={t("shipping.academy")}
+          placeholder={t("shipping.academyPlaceholder")}
+          otherPlaceholder={t("shipping.academyOtherPlaceholder")}
+        />
+        <FormField label={t("shipping.lineId")}>
+          <Input
+            value={data.lineId ?? ""}
+            onChange={(e) => onChange("lineId", e.target.value)}
+            placeholder={t("shipping.lineIdPlaceholder")}
+            className="border-white/20 bg-white/5 text-white placeholder:text-white/30"
+          />
+        </FormField>
+      </div>
 
       <Button
         onClick={onNext}

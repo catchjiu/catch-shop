@@ -53,7 +53,9 @@
       "country": "Country",
       "academy": "Academy (optional)",
       "academyPlaceholder": "Select your academy",
-      "academyOtherPlaceholder": "Enter your academy name"
+      "academyOtherPlaceholder": "Enter your academy name",
+      "lineId": "LINE ID (optional)",
+      "lineIdPlaceholder": "e.g. catchbjj"
     },
     "payment": {
       "title": "Select Payment Method",
@@ -150,6 +152,8 @@
     "academy": "Academy",
     "academyPlaceholder": "Select your academy (optional)",
     "academyOtherPlaceholder": "Enter your academy name",
+    "lineId": "LINE ID (optional)",
+    "lineIdPlaceholder": "e.g. catchbjj",
     "signIn": "Sign In",
     "createAccount": "Create Account",
     "noAccount": "No account?",

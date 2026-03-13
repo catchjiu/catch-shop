@@ -87,6 +87,7 @@ export default function AccountPage() {
   const [city, setCity] = useState("");
   const [zip, setZip] = useState("");
   const [academy, setAcademy] = useState("");
+  const [lineId, setLineId] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -102,6 +103,7 @@ export default function AccountPage() {
       setCity(meta.city ?? "");
       setZip(meta.zip ?? "");
       setAcademy(meta.academy ?? "");
+      setLineId(meta.line_id ?? "");
 
       const { data } = await supabase
         .from("orders")
@@ -175,7 +177,7 @@ export default function AccountPage() {
     try {
       const supabase = createClient();
       const { error } = await supabase.auth.updateUser({
-        data: { full_name: fullName, phone, address, city, zip, country: "TW", academy: academy || null },
+        data: { full_name: fullName, phone, address, city, zip, country: "TW", academy: academy || null, line_id: lineId || null },
       });
       if (error) { toast.error(t("profileError")); return; }
       toast.success(t("profileSaved"));
@@ -327,13 +329,24 @@ export default function AccountPage() {
               </div>
             </div>
 
-            <AcademySelect
-              value={academy}
-              onChange={setAcademy}
-              label={tAuth("academy")}
-              placeholder={tAuth("academyPlaceholder")}
-              otherPlaceholder={tAuth("academyOtherPlaceholder")}
-            />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <AcademySelect
+                value={academy}
+                onChange={setAcademy}
+                label={tAuth("academy")}
+                placeholder={tAuth("academyPlaceholder")}
+                otherPlaceholder={tAuth("academyOtherPlaceholder")}
+              />
+              <div className="space-y-1.5">
+                <Label className="text-xs text-white/50">{tAuth("lineId")}</Label>
+                <Input
+                  value={lineId}
+                  onChange={(e) => setLineId(e.target.value)}
+                  placeholder={tAuth("lineIdPlaceholder")}
+                  className="border-white/20 bg-white/5 text-white placeholder:text-white/20"
+                />
+              </div>
+            </div>
 
             <div className="border-t border-white/10 pt-4">
               <Button type="submit" disabled={saving} className="bg-white font-semibold text-slate-900 hover:bg-white/90">
