@@ -21,7 +21,9 @@ const GI_FEMALE     = ["F1", "F2", "F3"];
 
 function detectSizeType(sizes: string[]): "gi" | "nogi" | "plain" {
   const s = sizes.map((x) => x.toUpperCase());
-  if (s.some((x) => /^(A\d|F\d|M0{0,3}\d?)/.test(x))) return "gi";
+  // Gi: A0–A4, F1–F3, M000/M00/M0/M1/M2/M3 — all require a digit directly after the letter
+  // Note: plain "M" (Medium) must NOT match → require at least one char after M
+  if (s.some((x) => /^(A\d|F\d|M[0-9])/.test(x))) return "gi";
   if (s.some((x) => x.startsWith("Y-"))) return "nogi";
   return "plain";
 }
@@ -31,22 +33,32 @@ function buildSizeGroups(
   type: "gi" | "nogi" | "plain",
   locale: string
 ): { label: string; sizes: string[] }[] {
+  // Case-insensitive match: return the actual stored value (preserving original case)
+  const match = (predefined: string[]) =>
+    predefined
+      .map((p) => sizes.find((s) => s.toUpperCase() === p.toUpperCase()))
+      .filter((s): s is string => s !== undefined);
+
   if (type === "gi") {
-    const inGi = (arr: string[]) => arr.filter((s) => sizes.includes(s));
     return [
-      { label: locale === "zh-TW" ? "成人男裝" : "Adult Male",  sizes: inGi(GI_ADULT_M) },
-      { label: locale === "zh-TW" ? "兒童"     : "Kids",         sizes: inGi(GI_KIDS)    },
-      { label: locale === "zh-TW" ? "女裝"     : "Female",       sizes: inGi(GI_FEMALE)  },
+      { label: locale === "zh-TW" ? "成人男裝" : "Adult Male", sizes: match(GI_ADULT_M) },
+      { label: locale === "zh-TW" ? "兒童"     : "Kids",        sizes: match(GI_KIDS)   },
+      { label: locale === "zh-TW" ? "女裝"     : "Female",      sizes: match(GI_FEMALE) },
     ].filter((g) => g.sizes.length > 0);
   }
   if (type === "nogi") {
-    const inNoGi = (arr: string[]) => arr.filter((s) => sizes.includes(s));
-    return [
-      { label: locale === "zh-TW" ? "青少年" : "Youth", sizes: inNoGi(YOUTH_SIZES) },
-      { label: locale === "zh-TW" ? "成人"   : "Adult", sizes: inNoGi(ADULT_SIZES) },
+    // Sizes that belong to a known group
+    const known = [...YOUTH_SIZES, ...ADULT_SIZES].map((p) => p.toUpperCase());
+    const extra = sizes.filter((s) => !known.includes(s.toUpperCase()));
+    const groups = [
+      { label: locale === "zh-TW" ? "青少年" : "Youth", sizes: match(YOUTH_SIZES) },
+      { label: locale === "zh-TW" ? "成人"   : "Adult", sizes: match(ADULT_SIZES) },
     ].filter((g) => g.sizes.length > 0);
+    // Unrecognised sizes shown in their own flat group
+    if (extra.length > 0) groups.push({ label: "", sizes: extra });
+    return groups;
   }
-  // plain — single unnamed group preserving original order
+  // plain — single unnamed group, preserving database order
   return [{ label: "", sizes }];
 }
 // ─────────────────────────────────────────────────────────────────────────────
