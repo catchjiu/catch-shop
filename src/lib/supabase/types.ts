@@ -10,12 +10,14 @@ export type PaymentMethod = "manual_bank_transfer" | "newebpay";
 
 export interface ProductOptionChoice {
   label: string;
-  priceAdd: number;
+  priceAdd: number;   // relative addition to base price (used when useAbsolutePrice=false)
+  price?: number;     // absolute fixed price per choice (used when useAbsolutePrice=true)
 }
 
 export interface ProductOptionGroup {
   name: string;
   choices: ProductOptionChoice[];
+  useAbsolutePrice?: boolean; // when true, each choice has its own fixed price
 }
 
 export interface SelectedOption {

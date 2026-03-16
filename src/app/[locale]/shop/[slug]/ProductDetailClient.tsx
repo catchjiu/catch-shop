@@ -98,11 +98,22 @@ export function ProductDetailClient({ product, locale }: ProductDetailClientProp
 
   // Product options (e.g. "Item": Rash Guard / Shorts / Both)
   const optionGroups: ProductOptionGroup[] = (product.options ?? []) as ProductOptionGroup[];
+
+  // For absolute-price groups, compute the effective price addition vs the base product price
+  // so the rest of the pricing logic stays consistent.
+  const getChoicePriceAdd = (group: ProductOptionGroup, choice: { label: string; priceAdd: number; price?: number }) => {
+    if (group.useAbsolutePrice) {
+      // Absolute mode: price = choice.price; priceAdd = choice.price - product.price_twd
+      return (choice.price ?? 0) - product.price_twd;
+    }
+    return choice.priceAdd;
+  };
+
   const [selectedOptions, setSelectedOptions] = useState<SelectedOption[]>(() =>
     optionGroups.map((g) => ({
       name: g.name,
       choice: g.choices[0]?.label ?? "",
-      priceAdd: g.choices[0]?.priceAdd ?? 0,
+      priceAdd: getChoicePriceAdd(g, g.choices[0] ?? { label: "", priceAdd: 0, price: 0 }),
     }))
   );
   const optionsPriceAdd = selectedOptions.reduce((sum, o) => sum + (o.priceAdd ?? 0), 0);
@@ -349,22 +360,29 @@ export function ProductDetailClient({ product, locale }: ProductDetailClientProp
                   <div className="flex flex-wrap gap-2">
                     {group.choices.map((choice) => {
                       const isSelected = current?.choice === choice.label;
+                      const choicePriceAdd = getChoicePriceAdd(group, choice);
                       return (
                         <button
                           key={choice.label}
-                          onClick={() => handleOptionChange(group.name, choice.label, choice.priceAdd)}
+                          onClick={() => handleOptionChange(group.name, choice.label, choicePriceAdd)}
                           className={[
-                            "rounded-lg border px-4 py-2 text-sm font-medium transition-all",
+                            "flex flex-col items-center rounded-lg border px-4 py-2.5 text-sm font-medium transition-all",
                             isSelected
                               ? "border-white bg-white text-slate-900"
                               : "border-white/20 text-white/70 hover:border-white/50 hover:text-white",
                           ].join(" ")}
                         >
-                          {choice.label}
-                          {choice.priceAdd > 0 && (
-                            <span className={`ml-1.5 text-xs ${isSelected ? "text-slate-600" : "text-white/40"}`}>
-                              +{formatTWD(choice.priceAdd, locale)}
+                          <span>{choice.label}</span>
+                          {group.useAbsolutePrice ? (
+                            <span className={`text-xs font-bold ${isSelected ? "text-slate-600" : "text-white/50"}`}>
+                              {formatTWD(choice.price ?? 0, locale)}
                             </span>
+                          ) : (
+                            choice.priceAdd > 0 && (
+                              <span className={`text-xs ${isSelected ? "text-slate-600" : "text-white/40"}`}>
+                                +{formatTWD(choice.priceAdd, locale)}
+                              </span>
+                            )
                           )}
                         </button>
                       );

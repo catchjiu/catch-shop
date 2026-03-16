@@ -8,7 +8,7 @@ import { Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@/i18n/navigation";
 import { formatTWD } from "@/lib/currency";
-import type { ProductWithVariants } from "@/lib/supabase/types";
+import type { ProductWithVariants, ProductOptionGroup } from "@/lib/supabase/types";
 
 interface ProductCardProps {
   product: ProductWithVariants;
@@ -42,6 +42,13 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
   const t = useTranslations();
   const locale = useLocale();
   const name = locale === "zh-TW" ? product.name_zh : product.name_en;
+
+  // Detect if any option group uses absolute pricing
+  const optionGroups = (product.options ?? []) as ProductOptionGroup[];
+  const absoluteGroup = optionGroups.find((g) => g.useAbsolutePrice && g.choices.length > 0);
+  const minOptionPrice = absoluteGroup
+    ? Math.min(...absoluteGroup.choices.map((c) => c.price ?? 0))
+    : null;
 
   // Unique colors in order of first appearance
   const colors = [...new Map(
@@ -120,6 +127,11 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
                 {formatTWD(product.compare_at_price_twd, locale)}
               </span>
             </div>
+          ) : minOptionPrice !== null ? (
+            <p className="mt-1 text-base font-bold text-white/90">
+              <span className="text-xs font-normal text-white/40 mr-1">From</span>
+              {formatTWD(minOptionPrice, locale)}
+            </p>
           ) : (
             <p className="mt-1 text-lg font-bold text-white/90">
               {formatTWD(product.price_twd, locale)}

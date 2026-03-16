@@ -182,7 +182,7 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
   );
 
   const addOptionGroup = () => {
-    setOptions((prev) => [...prev, { name: "", choices: [{ label: "", priceAdd: 0 }] }]);
+    setOptions((prev) => [...prev, { name: "", choices: [{ label: "", priceAdd: 0, price: 0 }], useAbsolutePrice: true }]);
   };
   const removeOptionGroup = (gi: number) => {
     setOptions((prev) => prev.filter((_, i) => i !== gi));
@@ -190,9 +190,14 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
   const updateGroupName = (gi: number, name: string) => {
     setOptions((prev) => prev.map((g, i) => i === gi ? { ...g, name } : g));
   };
+  const toggleGroupPriceMode = (gi: number) => {
+    setOptions((prev) => prev.map((g, i) =>
+      i === gi ? { ...g, useAbsolutePrice: !g.useAbsolutePrice } : g
+    ));
+  };
   const addChoice = (gi: number) => {
     setOptions((prev) => prev.map((g, i) =>
-      i === gi ? { ...g, choices: [...g.choices, { label: "", priceAdd: 0 }] } : g
+      i === gi ? { ...g, choices: [...g.choices, { label: "", priceAdd: 0, price: 0 }] } : g
     ));
   };
   const removeChoice = (gi: number, ci: number) => {
@@ -200,12 +205,12 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
       i === gi ? { ...g, choices: g.choices.filter((_, j) => j !== ci) } : g
     ));
   };
-  const updateChoice = (gi: number, ci: number, field: "label" | "priceAdd", val: string) => {
+  const updateChoice = (gi: number, ci: number, field: "label" | "priceAdd" | "price", val: string) => {
     setOptions((prev) => prev.map((g, i) =>
       i === gi ? {
         ...g,
         choices: g.choices.map((c, j) =>
-          j === ci ? { ...c, [field]: field === "priceAdd" ? parseInt(val) || 0 : val } : c
+          j === ci ? { ...c, [field]: field === "label" ? val : parseInt(val) || 0 } : c
         ),
       } : g
     ));
@@ -588,7 +593,8 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
             )}
 
             {options.map((group, gi) => (
-              <div key={gi} className="rounded-lg border border-white/10 bg-white/5 p-3 space-y-2">
+              <div key={gi} className="rounded-lg border border-white/10 bg-white/5 p-3 space-y-3">
+                {/* Group header */}
                 <div className="flex items-center gap-2">
                   <Input
                     value={group.name}
@@ -599,36 +605,63 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
                   <button
                     type="button"
                     onClick={() => removeOptionGroup(gi)}
-                    className="text-white/30 hover:text-red-400 transition-colors"
+                    className="text-white/30 hover:text-red-400 transition-colors flex-shrink-0"
                   >
                     <X className="h-4 w-4" />
                   </button>
                 </div>
 
+                {/* Price mode toggle */}
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => toggleGroupPriceMode(gi)}
+                    className={[
+                      "relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200",
+                      group.useAbsolutePrice ? "bg-white/80" : "bg-white/20",
+                    ].join(" ")}
+                  >
+                    <span className={[
+                      "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-slate-900 shadow ring-0 transition duration-200",
+                      group.useAbsolutePrice ? "translate-x-4" : "translate-x-0",
+                    ].join(" ")} />
+                  </button>
+                  <span className="text-xs text-white/50">
+                    {group.useAbsolutePrice
+                      ? "Each choice has its own fixed price"
+                      : "Add to base price"}
+                  </span>
+                </div>
+
+                {/* Choices */}
                 <div className="space-y-1.5">
                   {group.choices.map((choice, ci) => (
                     <div key={ci} className="flex items-center gap-2">
                       <Input
                         value={choice.label}
                         onChange={(e) => updateChoice(gi, ci, "label", e.target.value)}
-                        placeholder="Choice label (e.g. Rash Guard)"
+                        placeholder="e.g. Shorts"
                         className="h-7 flex-1 border-white/20 bg-white/5 text-white placeholder:text-white/20 text-xs"
                       />
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-white/30">+TWD</span>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <span className="text-xs text-white/30">
+                          {group.useAbsolutePrice ? "NT$" : "+NT$"}
+                        </span>
                         <Input
                           type="number"
                           min={0}
-                          value={choice.priceAdd}
-                          onChange={(e) => updateChoice(gi, ci, "priceAdd", e.target.value)}
-                          className="h-7 w-20 border-white/20 bg-white/5 text-white text-xs"
+                          value={group.useAbsolutePrice ? (choice.price ?? 0) : choice.priceAdd}
+                          onChange={(e) =>
+                            updateChoice(gi, ci, group.useAbsolutePrice ? "price" : "priceAdd", e.target.value)
+                          }
+                          className="h-7 w-24 border-white/20 bg-white/5 text-white text-xs"
                         />
                       </div>
                       {group.choices.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeChoice(gi, ci)}
-                          className="text-white/30 hover:text-red-400 transition-colors"
+                          className="text-white/30 hover:text-red-400 transition-colors flex-shrink-0"
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
