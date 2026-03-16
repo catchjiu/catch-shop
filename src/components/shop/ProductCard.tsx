@@ -50,6 +50,15 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
     ? Math.min(...absoluteGroup.choices.map((c) => c.price ?? 0))
     : null;
 
+  // If variants have price overrides, the displayed base price is the minimum variant price
+  const variantPrices = product.product_variants
+    .map((v) => v.price_override)
+    .filter((p): p is number => p !== null && p > 0);
+  const minVariantPrice = variantPrices.length > 0 ? Math.min(...variantPrices) : null;
+  const hasVariantPricing = variantPrices.length > 0 &&
+    variantPrices.some((p) => p !== product.price_twd);
+  const displayBasePrice = minVariantPrice ?? product.price_twd;
+
   // Unique colors in order of first appearance
   const colors = [...new Map(
     product.product_variants.map((v) => [v.color, v])
@@ -118,10 +127,10 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div>
           <h3 className="font-semibold text-white leading-tight line-clamp-2">{name}</h3>
-          {product.compare_at_price_twd && product.compare_at_price_twd > product.price_twd ? (
+          {product.compare_at_price_twd && product.compare_at_price_twd > displayBasePrice ? (
             <div className="mt-1 flex items-baseline gap-2">
               <span className="text-lg font-bold text-red-400">
-                {formatTWD(product.price_twd, locale)}
+                {formatTWD(displayBasePrice, locale)}
               </span>
               <span className="text-sm text-white/30 line-through font-normal">
                 {formatTWD(product.compare_at_price_twd, locale)}
@@ -131,6 +140,11 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
             <p className="mt-1 text-base font-bold text-white/90">
               <span className="text-xs font-normal text-white/40 mr-1">From</span>
               {formatTWD(minOptionPrice, locale)}
+            </p>
+          ) : hasVariantPricing ? (
+            <p className="mt-1 text-base font-bold text-white/90">
+              <span className="text-xs font-normal text-white/40 mr-1">From</span>
+              {formatTWD(displayBasePrice, locale)}
             </p>
           ) : (
             <p className="mt-1 text-lg font-bold text-white/90">

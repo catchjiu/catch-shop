@@ -53,6 +53,7 @@ export interface ProductVariant {
   stock_quantity: number;
   sku: string | null;
   color_image_url: string | null;
+  price_override: number | null;
   created_at: string;
   updated_at: string;
 }

@@ -73,11 +73,12 @@ const SIZE_PRESETS = [
 interface VariantRowProps {
   variant: Partial<ProductVariant> & { _key: string };
   productSlug: string;
+  basePrice: number;
   onChange: (key: string, updated: Partial<ProductVariant>) => void;
   onRemove: (key: string) => void;
 }
 
-function VariantRow({ variant, productSlug, onChange, onRemove }: VariantRowProps) {
+function VariantRow({ variant, productSlug, basePrice, onChange, onRemove }: VariantRowProps) {
   const currentSku = variant.sku ?? "";
 
   const handleSizeChange = (newSize: string) => {
@@ -125,6 +126,22 @@ function VariantRow({ variant, productSlug, onChange, onRemove }: VariantRowProp
             onChange(variant._key, { stock_quantity: parseInt(e.target.value) || 0 })
           }
           className="h-8 w-20 border-white/20 bg-white/5 text-white text-sm"
+        />
+      </td>
+      <td className="py-2 pr-2">
+        <Input
+          type="number"
+          min={0}
+          value={variant.price_override ?? ""}
+          onChange={(e) => {
+            const val = e.target.value;
+            onChange(variant._key, { price_override: val === "" ? null : parseInt(val) || null });
+          }}
+          placeholder={String(basePrice)}
+          className={[
+            "h-8 w-24 border-white/20 bg-white/5 text-sm",
+            variant.price_override ? "text-amber-400 font-semibold" : "text-white/30",
+          ].join(" ")}
         />
       </td>
       <td className="py-2 pr-2">
@@ -825,6 +842,9 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
                               <th className="px-3 py-1.5 text-left text-xs font-medium text-white/30">Size</th>
                               <th className="px-3 py-1.5 text-left text-xs font-medium text-white/30">Color</th>
                               <th className="px-3 py-1.5 text-left text-xs font-medium text-white/30">Stock</th>
+                              <th className="px-3 py-1.5 text-left text-xs font-medium text-white/30">
+                                Price <span className="font-normal text-white/20">(override)</span>
+                              </th>
                               <th className="px-3 py-1.5 text-left text-xs font-medium text-white/30">SKU <span className="font-normal text-white/20">(auto)</span></th>
                               <th className="px-3 py-1.5" />
                             </tr>
@@ -835,6 +855,7 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
                                 key={v._key}
                                 variant={v}
                                 productSlug={slug}
+                                basePrice={parseInt(price) || 0}
                                 onChange={updateVariant}
                                 onRemove={removeVariant}
                               />
@@ -856,6 +877,7 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
                           <th className="px-3 py-1.5 text-left text-xs font-medium text-white/30">Size</th>
                           <th className="px-3 py-1.5 text-left text-xs font-medium text-white/30">Color</th>
                           <th className="px-3 py-1.5 text-left text-xs font-medium text-white/30">Stock</th>
+                          <th className="px-3 py-1.5 text-left text-xs font-medium text-white/30">Price <span className="font-normal text-white/20">(override)</span></th>
                           <th className="px-3 py-1.5 text-left text-xs font-medium text-white/30">SKU</th>
                           <th className="px-3 py-1.5" />
                         </tr>
@@ -866,6 +888,7 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
                             key={v._key}
                             variant={v}
                             productSlug={slug}
+                            basePrice={parseInt(price) || 0}
                             onChange={updateVariant}
                             onRemove={removeVariant}
                           />

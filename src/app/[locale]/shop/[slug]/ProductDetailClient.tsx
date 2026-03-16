@@ -99,12 +99,11 @@ export function ProductDetailClient({ product, locale }: ProductDetailClientProp
   // Product options (e.g. "Item": Rash Guard / Shorts / Both)
   const optionGroups: ProductOptionGroup[] = (product.options ?? []) as ProductOptionGroup[];
 
-  // For absolute-price groups, compute the effective price addition vs the base product price
-  // so the rest of the pricing logic stays consistent.
+  // For absolute-price groups, compute the effective price addition vs the variant/base price
   const getChoicePriceAdd = (group: ProductOptionGroup, choice: { label: string; priceAdd: number; price?: number }) => {
     if (group.useAbsolutePrice) {
-      // Absolute mode: price = choice.price; priceAdd = choice.price - product.price_twd
-      return (choice.price ?? 0) - product.price_twd;
+      const base = selectedVariant?.price_override ?? product.price_twd;
+      return (choice.price ?? 0) - base;
     }
     return choice.priceAdd;
   };
@@ -149,6 +148,9 @@ export function ProductDetailClient({ product, locale }: ProductDetailClientProp
   const lowStock = !product.is_preorder && selectedVariant &&
     selectedVariant.stock_quantity > 0 && selectedVariant.stock_quantity <= 5;
 
+  // Effective base price: use variant override if set, otherwise product base price
+  const effectiveBasePrice = selectedVariant?.price_override ?? product.price_twd;
+
   const handleAddToCart = () => {
     if (!selectedVariant) return;
     addItem({
@@ -160,7 +162,7 @@ export function ProductDetailClient({ product, locale }: ProductDetailClientProp
       size: selectedVariant.size,
       color: selectedVariant.color,
       imageUrl: colorImage,
-      price: product.price_twd + optionsPriceAdd,
+      price: effectiveBasePrice + optionsPriceAdd,
       isPreorder: product.is_preorder,
       selectedOptions,
     });
@@ -207,25 +209,30 @@ export function ProductDetailClient({ product, locale }: ProductDetailClientProp
           <div className="mt-2 flex flex-wrap items-baseline gap-3">
             <span className={[
               "text-3xl font-bold",
-              product.compare_at_price_twd && product.compare_at_price_twd > product.price_twd
+              product.compare_at_price_twd && product.compare_at_price_twd > effectiveBasePrice
                 ? "text-red-400"
                 : "text-white/90",
             ].join(" ")}>
-              {formatTWD(product.price_twd + optionsPriceAdd, locale)}
+              {formatTWD(effectiveBasePrice + optionsPriceAdd, locale)}
             </span>
-            {product.compare_at_price_twd && product.compare_at_price_twd > product.price_twd && (
+            {product.compare_at_price_twd && product.compare_at_price_twd > effectiveBasePrice && (
               <>
                 <span className="text-xl text-white/30 line-through font-normal">
                   {formatTWD(product.compare_at_price_twd + optionsPriceAdd, locale)}
                 </span>
                 <span className="rounded bg-red-500 px-2 py-0.5 text-sm font-bold text-white">
-                  {Math.round((1 - product.price_twd / product.compare_at_price_twd) * 100)}% OFF
+                  {Math.round((1 - effectiveBasePrice / product.compare_at_price_twd) * 100)}% OFF
                 </span>
               </>
             )}
-            {optionsPriceAdd > 0 && !(product.compare_at_price_twd && product.compare_at_price_twd > product.price_twd) && (
+            {optionsPriceAdd > 0 && !(product.compare_at_price_twd && product.compare_at_price_twd > effectiveBasePrice) && (
               <span className="text-xl text-white/40 line-through font-normal">
-                {formatTWD(product.price_twd, locale)}
+                {formatTWD(effectiveBasePrice, locale)}
+              </span>
+            )}
+            {selectedVariant?.price_override && selectedVariant.price_override !== product.price_twd && (
+              <span className="text-sm text-white/30">
+                ({locale === "zh-TW" ? "此尺寸" : "this size"})
               </span>
             )}
           </div>
