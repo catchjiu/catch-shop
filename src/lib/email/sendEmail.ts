@@ -1,3 +1,5 @@
+import nodemailer from "nodemailer";
+
 interface EmailPayload {
   to: { email: string; name?: string }[];
   subject: string;
@@ -5,40 +7,37 @@ interface EmailPayload {
   text: string;
 }
 
-/**
- * Send a transactional email via Brevo (formerly Sendinblue).
- * Uses the REST API directly — no extra npm package needed.
- */
-export async function sendEmail(payload: EmailPayload): Promise<void> {
-  const apiKey = process.env.BREVO_API_KEY;
-  if (!apiKey) {
-    console.warn("[email] BREVO_API_KEY not set — skipping email send.");
-    return;
+function createTransport() {
+  const host   = process.env.SMTP_HOST     ?? "smtp-relay.brevo.com";
+  const port   = parseInt(process.env.SMTP_PORT ?? "587");
+  const user   = process.env.SMTP_USER;
+  const pass   = process.env.SMTP_PASS;
+
+  if (!user || !pass) {
+    console.warn("[email] SMTP_USER / SMTP_PASS not set — skipping email send.");
+    return null;
   }
 
-  const senderEmail = process.env.EMAIL_FROM ?? "catchjiujitsu@gmail.com";
-  const senderName = process.env.EMAIL_FROM_NAME ?? "Matside";
-
-  const body = {
-    sender: { name: senderName, email: senderEmail },
-    to: payload.to,
-    subject: payload.subject,
-    htmlContent: payload.html,
-    textContent: payload.text,
-  };
-
-  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
-    method: "POST",
-    headers: {
-      "accept": "application/json",
-      "api-key": apiKey,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(body),
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure: false, // STARTTLS on port 587
+    auth: { user, pass },
   });
+}
 
-  if (!res.ok) {
-    const error = await res.text();
-    throw new Error(`Brevo API error ${res.status}: ${error}`);
-  }
+export async function sendEmail(payload: EmailPayload): Promise<void> {
+  const transport = createTransport();
+  if (!transport) return;
+
+  const fromEmail = process.env.EMAIL_FROM      ?? "catchjiujitsu@gmail.com";
+  const fromName  = process.env.EMAIL_FROM_NAME ?? "Matside";
+
+  await transport.sendMail({
+    from: `"${fromName}" <${fromEmail}>`,
+    to: payload.to.map((r) => (r.name ? `"${r.name}" <${r.email}>` : r.email)).join(", "),
+    subject: payload.subject,
+    html: payload.html,
+    text: payload.text,
+  });
 }
