@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSsrClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
+import { Resend } from "resend";
 import { buildNewebPayHtmlForm, buildNewebPayForm } from "@/lib/payments/newebpay";
+import { buildOrderConfirmationHtml, buildOrderConfirmationText } from "@/lib/email/orderConfirmation";
 import type { PaymentMethod } from "@/lib/supabase/types";
 
 interface OrderItem {
@@ -39,10 +41,16 @@ function getServiceClient() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
+function getResend() {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return null;
+  return new Resend(key);
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body: OrderRequestBody = await request.json();
-    const { shipping, paymentMethod, bankLastFive, items, totalAmount, isPreorderOrder } = body;
+    const { shipping, paymentMethod, bankLastFive: bankLastFive_, items, totalAmount, isPreorderOrder } = body;
 
     if (!items || items.length === 0) {
       return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
@@ -59,7 +67,7 @@ export async function POST(request: NextRequest) {
     const variantIds = items.map((i) => i.variantId);
     const { data: variants, error: variantsError } = await db
       .from("product_variants")
-      .select("id, stock_quantity, products(is_preorder)")
+      .select("id, size, color, stock_quantity, products(is_preorder, name_en, name_zh)")
       .in("id", variantIds);
 
     if (variantsError || !variants) {
@@ -100,7 +108,7 @@ export async function POST(request: NextRequest) {
         total_amount: totalAmount,
         status: "pending_payment",
         payment_method: paymentMethod,
-        payment_ref: bankLastFive ? `bank_last5:${bankLastFive}` : null,
+        payment_ref: bankLastFive_ ? `bank_last5:${bankLastFive_}` : null,
         is_preorder_order: isPreorderOrder,
         academy: shipping.academy || null,
         line_id: shipping.lineId || null,
@@ -141,12 +149,80 @@ export async function POST(request: NextRequest) {
     // Decrement stock for non-preorder items
     for (const item of items) {
       const variant = variants.find((v) => v.id === item.variantId);
-      const product = variant?.products as { is_preorder: boolean } | null;
+      const product = variant?.products as { is_preorder: boolean; name_en: string; name_zh: string } | null;
       if (!product?.is_preorder) {
         await db.rpc("decrement_stock", {
           p_variant_id: item.variantId,
           p_quantity: item.quantity,
         });
+      }
+    }
+
+    // Send order confirmation emails (fire-and-forget — don't block the response)
+    const resend = getResend();
+    if (resend) {
+      try {
+        const adminEmail = process.env.ADMIN_EMAIL ?? "catchjiujitsu@gmail.com";
+        const emailItems = items.map((item) => {
+          const variant = variants!.find((v) => v.id === item.variantId);
+          const prod = variant?.products as { is_preorder: boolean; name_en: string; name_zh: string } | null;
+          return {
+            productNameEn: prod?.name_en ?? "Product",
+            productNameZh: prod?.name_zh ?? "",
+            color: (variant as { color?: string })?.color ?? "",
+            size: (variant as { size?: string })?.size ?? "",
+            quantity: item.quantity,
+            price: item.price,
+            selectedOptions: item.selectedOptions?.map((o) => ({ name: o.name, choice: o.choice })),
+          };
+        });
+
+        const bankLastFive = bankLastFive_
+          ? bankLastFive_
+          : order.payment_ref?.startsWith("bank_last5:")
+            ? order.payment_ref.replace("bank_last5:", "")
+            : null;
+
+        const emailData = {
+          orderId: order.id,
+          customerName: shipping.fullName,
+          customerEmail: shipping.email,
+          shippingAddress: shipping.address,
+          shippingCity: shipping.city,
+          shippingZip: shipping.zip || null,
+          shippingPhone: shipping.phone || null,
+          paymentMethod,
+          bankLastFive,
+          totalAmount,
+          isPreorder: isPreorderOrder,
+          items: emailItems,
+        };
+
+        const shortOrderId = order.id.slice(0, 8).toUpperCase();
+        const subject = `Order Confirmed #${shortOrderId} — Matside · 訂單確認`;
+        const html = buildOrderConfirmationHtml(emailData);
+        const text = buildOrderConfirmationText(emailData);
+
+        // Send to customer
+        await resend.emails.send({
+          from: "Matside <sales@mat-side.com>",
+          to: [shipping.email],
+          subject,
+          html,
+          text,
+        });
+
+        // Send copy to admin
+        await resend.emails.send({
+          from: "Matside <sales@mat-side.com>",
+          to: [adminEmail],
+          subject: `[New Order] ${subject}`,
+          html,
+          text,
+        });
+      } catch (emailErr) {
+        // Don't fail the order if email sending fails
+        console.error("[orders] Email send error:", emailErr);
       }
     }
 
