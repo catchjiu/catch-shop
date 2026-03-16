@@ -1,17 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Link } from "@/i18n/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Mail, Lock, User, Phone, MapPin, Loader2 } from "lucide-react";
+import { Mail, Lock, User, Phone, MapPin, Loader2, CheckCircle2 } from "lucide-react";
 import { AcademySelect } from "@/components/shop/AcademySelect";
+import { Turnstile } from "@marsidev/react-turnstile";
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 export default function RegisterPage() {
   const t = useTranslations("auth");
+  const router = useRouter();
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -25,36 +30,50 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<{ reset: () => void } | null>(null);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     if (password.length < 8) { setError(t("weakPassword")); return; }
+    if (TURNSTILE_SITE_KEY && !captchaToken) { setError(t("captchaError")); return; }
     setLoading(true);
     try {
       const supabase = createClient();
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
+      const signUpOptions: Parameters<typeof supabase.auth.signUp>[0]["options"] = {
+        emailRedirectTo: `${siteUrl}/auth/callback`,
+        data: {
+          full_name: fullName,
+          phone,
+          address,
+          city,
+          zip,
+          country: "TW",
+          academy: academy || null,
+          line_id: lineId || null,
+        },
+      };
+      if (TURNSTILE_SITE_KEY && captchaToken) {
+        (signUpOptions as Record<string, unknown>).captchaToken = captchaToken;
+      }
       const { error: authError } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          emailRedirectTo: `${siteUrl}/auth/callback`,
-          data: {
-            full_name: fullName,
-            phone,
-            address,
-            city,
-            zip,
-            country: "TW",
-            academy: academy || null,
-            line_id: lineId || null,
-          },
-        },
+        options: signUpOptions,
       });
-      if (authError) { setError(authError.message); return; }
+      if (authError) {
+        setError(authError.message);
+        turnstileRef.current?.reset();
+        setCaptchaToken(null);
+        return;
+      }
       setDone(true);
     } catch {
       setError(t("genericError"));
+      turnstileRef.current?.reset();
+      setCaptchaToken(null);
     } finally {
       setLoading(false);
     }
@@ -65,16 +84,16 @@ export default function RegisterPage() {
       <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
         <div className="w-full max-w-sm text-center space-y-4">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10">
-            <Mail className="h-8 w-8 text-green-400" />
+            <CheckCircle2 className="h-8 w-8 text-green-400" />
           </div>
-          <h2 className="text-xl font-bold text-white">{t("checkEmailTitle")}</h2>
-          <p className="text-sm text-white/50">
-            {t("checkEmailDesc", { email })}
-          </p>
-          <Link href="/auth/login"
-            className="inline-block mt-4 text-sm text-white/50 underline underline-offset-2 hover:text-white">
-            {t("backToSignIn")}
-          </Link>
+          <h2 className="text-xl font-bold text-white">{t("accountReadyTitle")}</h2>
+          <p className="text-sm text-white/50">{t("accountReadyDesc")}</p>
+          <Button
+            onClick={() => router.push("/account")}
+            className="mt-4 bg-white font-semibold text-slate-900 hover:bg-white/90"
+          >
+            {t("goToAccount")}
+          </Button>
         </div>
       </main>
     );
@@ -179,6 +198,18 @@ export default function RegisterPage() {
                 </div>
               </div>
             </div>
+
+            {TURNSTILE_SITE_KEY && (
+              <div className="flex justify-center">
+                <Turnstile
+                  ref={turnstileRef}
+                  siteKey={TURNSTILE_SITE_KEY}
+                  onSuccess={(token) => setCaptchaToken(token)}
+                  onExpire={() => setCaptchaToken(null)}
+                  options={{ theme: "dark" }}
+                />
+              </div>
+            )}
 
             {error && (
               <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-400">{error}</p>

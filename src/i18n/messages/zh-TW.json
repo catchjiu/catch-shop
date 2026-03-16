@@ -167,6 +167,10 @@
     "genericError": "發生錯誤，請重試。",
     "checkEmailTitle": "請確認您的電子郵件",
     "checkEmailDesc": "我們已將確認連結寄送至 {email}，請點擊連結以啟用您的帳戶。",
+    "accountReadyTitle": "帳戶已建立！",
+    "accountReadyDesc": "歡迎來到 Matside，您已成功登入。",
+    "goToAccount": "前往我的帳戶",
+    "captchaError": "請完成驗證碼驗證。",
     "backToSignIn": "返回登入"
   },
   "account": {

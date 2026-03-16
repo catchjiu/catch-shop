@@ -167,7 +167,11 @@
     "genericError": "Something went wrong. Please try again.",
     "checkEmailTitle": "Check your email",
     "checkEmailDesc": "We sent a confirmation link to {email}. Click it to activate your account.",
-    "backToSignIn": "Back to Sign In"
+    "backToSignIn": "Back to Sign In",
+    "accountReadyTitle": "Account created!",
+    "accountReadyDesc": "Welcome to Matside. You are now signed in.",
+    "goToAccount": "Go to My Account",
+    "captchaError": "Please complete the CAPTCHA verification."
   },
   "account": {
     "title": "My Account",
