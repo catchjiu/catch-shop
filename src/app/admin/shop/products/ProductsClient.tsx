@@ -404,6 +404,7 @@ function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
           stock_quantity: v.stock_quantity ?? 0,
           sku: v.sku?.trim() || null,
           color_image_url: colorImages[variantColor] ?? null,
+          price_override: v.price_override ?? null,
         };
         if (v.id) {
           await supabase.from("product_variants").update(variantData).eq("id", v.id);
