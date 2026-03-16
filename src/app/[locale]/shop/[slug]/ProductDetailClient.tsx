@@ -99,22 +99,29 @@ export function ProductDetailClient({ product, locale }: ProductDetailClientProp
   // Product options (e.g. "Item": Rash Guard / Shorts / Both)
   const optionGroups: ProductOptionGroup[] = (product.options ?? []) as ProductOptionGroup[];
 
-  // For absolute-price groups, compute the effective price addition vs the variant/base price
-  const getChoicePriceAdd = (group: ProductOptionGroup, choice: { label: string; priceAdd: number; price?: number }) => {
+  // For absolute-price groups, compute the effective price addition vs the variant/base price.
+  // Accepts an explicit priceOverride so it can be called before selectedVariant is defined.
+  const getChoicePriceAdd = (
+    group: ProductOptionGroup,
+    choice: { label: string; priceAdd: number; price?: number },
+    priceOverride?: number | null,
+  ) => {
     if (group.useAbsolutePrice) {
-      const base = selectedVariant?.price_override ?? product.price_twd;
+      const base = priceOverride ?? product.price_twd;
       return (choice.price ?? 0) - base;
     }
     return choice.priceAdd;
   };
 
-  const [selectedOptions, setSelectedOptions] = useState<SelectedOption[]>(() =>
-    optionGroups.map((g) => ({
+  const [selectedOptions, setSelectedOptions] = useState<SelectedOption[]>(() => {
+    // At initialisation selectedVariant doesn't exist yet — use the first variant's price_override
+    const firstVariant = product.product_variants.find((v) => v.color === colors[0]);
+    return optionGroups.map((g) => ({
       name: g.name,
       choice: g.choices[0]?.label ?? "",
-      priceAdd: getChoicePriceAdd(g, g.choices[0] ?? { label: "", priceAdd: 0, price: 0 }),
-    }))
-  );
+      priceAdd: getChoicePriceAdd(g, g.choices[0] ?? { label: "", priceAdd: 0, price: 0 }, firstVariant?.price_override),
+    }));
+  });
   const optionsPriceAdd = selectedOptions.reduce((sum, o) => sum + (o.priceAdd ?? 0), 0);
 
   const handleOptionChange = (groupName: string, choiceLabel: string, priceAdd: number) => {
@@ -367,7 +374,7 @@ export function ProductDetailClient({ product, locale }: ProductDetailClientProp
                   <div className="flex flex-wrap gap-2">
                     {group.choices.map((choice) => {
                       const isSelected = current?.choice === choice.label;
-                      const choicePriceAdd = getChoicePriceAdd(group, choice);
+                      const choicePriceAdd = getChoicePriceAdd(group, choice, selectedVariant?.price_override);
                       return (
                         <button
                           key={choice.label}
