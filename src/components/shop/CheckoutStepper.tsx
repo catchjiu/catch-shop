@@ -160,15 +160,8 @@ export function CheckoutStepper() {
 
       const data = await res.json();
 
-      if (paymentMethod === "newebpay" && data.newebpayForm) {
-        // Submit NewebPay form
-        const formContainer = document.createElement("div");
-        formContainer.innerHTML = data.newebpayForm;
-        document.body.appendChild(formContainer);
-        const form = formContainer.querySelector("form") as HTMLFormElement;
-        if (form) form.submit();
-        return;
-      }
+      // NewebPay redirect disabled until payment gateway is configured
+      // if (paymentMethod === "newebpay" && data.newebpayForm) { ... }
 
       clearCart();
       // Silently update the user's saved profile with the latest shipping info
@@ -426,11 +419,12 @@ function PaymentStep({ value, onChange, bankLastFive, onBankLastFiveChange, bank
               title: t("payment.bankTransfer"),
               desc: t("payment.bankTransferDesc"),
             },
-            {
-              id: "newebpay" as PaymentMethod,
-              title: t("payment.newebpay"),
-              desc: t("payment.newebpayDesc"),
-            },
+            // NewebPay temporarily disabled — re-enable when payment gateway is configured
+            // {
+            //   id: "newebpay" as PaymentMethod,
+            //   title: t("payment.newebpay"),
+            //   desc: t("payment.newebpayDesc"),
+            // },
           ] as const
         ).map((opt) => (
           <label
