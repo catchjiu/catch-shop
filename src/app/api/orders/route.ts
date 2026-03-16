@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSsrClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
-import { Resend } from "resend";
 import { buildNewebPayHtmlForm, buildNewebPayForm } from "@/lib/payments/newebpay";
 import { buildOrderConfirmationHtml, buildOrderConfirmationText } from "@/lib/email/orderConfirmation";
+import { sendEmail } from "@/lib/email/sendEmail";
 import type { PaymentMethod } from "@/lib/supabase/types";
 
 interface OrderItem {
@@ -41,11 +41,6 @@ function getServiceClient() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-function getResend() {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) return null;
-  return new Resend(key);
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -158,72 +153,66 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Send order confirmation emails (fire-and-forget — don't block the response)
-    const resend = getResend();
-    if (resend) {
-      try {
-        const adminEmail = process.env.ADMIN_EMAIL ?? "catchjiujitsu@gmail.com";
-        const emailItems = items.map((item) => {
-          const variant = variants!.find((v) => v.id === item.variantId);
-          const prod = variant?.products as { is_preorder: boolean; name_en: string; name_zh: string } | null;
-          return {
-            productNameEn: prod?.name_en ?? "Product",
-            productNameZh: prod?.name_zh ?? "",
-            color: (variant as { color?: string })?.color ?? "",
-            size: (variant as { size?: string })?.size ?? "",
-            quantity: item.quantity,
-            price: item.price,
-            selectedOptions: item.selectedOptions?.map((o) => ({ name: o.name, choice: o.choice })),
-          };
-        });
-
-        const bankLastFive = bankLastFive_
-          ? bankLastFive_
-          : order.payment_ref?.startsWith("bank_last5:")
-            ? order.payment_ref.replace("bank_last5:", "")
-            : null;
-
-        const emailData = {
-          orderId: order.id,
-          customerName: shipping.fullName,
-          customerEmail: shipping.email,
-          shippingAddress: shipping.address,
-          shippingCity: shipping.city,
-          shippingZip: shipping.zip || null,
-          shippingPhone: shipping.phone || null,
-          paymentMethod,
-          bankLastFive,
-          totalAmount,
-          isPreorder: isPreorderOrder,
-          items: emailItems,
+    // Send order confirmation emails (fire-and-forget — don't fail the order)
+    try {
+      const adminEmail = process.env.ADMIN_EMAIL ?? "catchjiujitsu@gmail.com";
+      const emailItems = items.map((item) => {
+        const variant = variants!.find((v) => v.id === item.variantId);
+        const prod = variant?.products as { is_preorder: boolean; name_en: string; name_zh: string } | null;
+        return {
+          productNameEn: prod?.name_en ?? "Product",
+          productNameZh: prod?.name_zh ?? "",
+          color: (variant as { color?: string })?.color ?? "",
+          size: (variant as { size?: string })?.size ?? "",
+          quantity: item.quantity,
+          price: item.price,
+          selectedOptions: item.selectedOptions?.map((o) => ({ name: o.name, choice: o.choice })),
         };
+      });
 
-        const shortOrderId = order.id.slice(0, 8).toUpperCase();
-        const subject = `Order Confirmed #${shortOrderId} — Matside · 訂單確認`;
-        const html = buildOrderConfirmationHtml(emailData);
-        const text = buildOrderConfirmationText(emailData);
+      const bankLastFive = bankLastFive_
+        ? bankLastFive_
+        : order.payment_ref?.startsWith("bank_last5:")
+          ? order.payment_ref.replace("bank_last5:", "")
+          : null;
 
-        // Send to customer
-        await resend.emails.send({
-          from: "Matside <sales@mat-side.com>",
-          to: [shipping.email],
-          subject,
-          html,
-          text,
-        });
+      const emailData = {
+        orderId: order.id,
+        customerName: shipping.fullName,
+        customerEmail: shipping.email,
+        shippingAddress: shipping.address,
+        shippingCity: shipping.city,
+        shippingZip: shipping.zip || null,
+        shippingPhone: shipping.phone || null,
+        paymentMethod,
+        bankLastFive,
+        totalAmount,
+        isPreorder: isPreorderOrder,
+        items: emailItems,
+      };
 
-        // Send copy to admin
-        await resend.emails.send({
-          from: "Matside <sales@mat-side.com>",
-          to: [adminEmail],
-          subject: `[New Order] ${subject}`,
-          html,
-          text,
-        });
-      } catch (emailErr) {
-        // Don't fail the order if email sending fails
-        console.error("[orders] Email send error:", emailErr);
-      }
+      const shortOrderId = order.id.slice(0, 8).toUpperCase();
+      const subject = `Order Confirmed #${shortOrderId} — Matside · 訂單確認`;
+      const html = buildOrderConfirmationHtml(emailData);
+      const text = buildOrderConfirmationText(emailData);
+
+      // Send to customer
+      await sendEmail({
+        to: [{ email: shipping.email, name: shipping.fullName }],
+        subject,
+        html,
+        text,
+      });
+
+      // Send copy to admin
+      await sendEmail({
+        to: [{ email: adminEmail, name: "Matside Admin" }],
+        subject: `[New Order] ${subject}`,
+        html,
+        text,
+      });
+    } catch (emailErr) {
+      console.error("[orders] Email send error:", emailErr);
     }
 
     // For NewebPay: build encrypted form and return it
