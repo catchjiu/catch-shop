@@ -41,9 +41,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       const supabase = createClient();
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
       const signUpOptions: Parameters<typeof supabase.auth.signUp>[0]["options"] = {
-        emailRedirectTo: `${siteUrl}/auth/callback`,
         data: {
           full_name: fullName,
           phone,
