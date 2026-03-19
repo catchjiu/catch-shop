@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronRight } from "lucide-react";
+import { Check, ChevronRight, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -446,27 +446,67 @@ function PaymentStep({ value, onChange, bankLastFive, onBankLastFiveChange, bank
         ))}
       </RadioGroup>
 
-      {/* Last 5 digits field — only shown for bank transfer */}
+      {/* Bank transfer: account details + last-5-digits field */}
       {value === "manual_bank_transfer" && (
-        <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 space-y-3">
-          <p className="text-sm text-blue-300/80">
-            {locale === "zh-TW"
-              ? "請輸入您付款帳號的末五碼，方便我們核對款項。"
-              : "Enter the last 5 digits of the bank account you'll transfer from so we can match your payment."}
-          </p>
-          <FormField
-            label={locale === "zh-TW" ? "帳號末五碼" : "Last 5 digits of your account"}
-            error={bankLastFiveError}
-          >
-            <Input
-              value={bankLastFive}
-              onChange={(e) => onBankLastFiveChange(e.target.value.replace(/\D/g, "").slice(0, 5))}
-              maxLength={5}
-              inputMode="numeric"
-              placeholder="12345"
-              className="border-white/20 bg-white/5 text-white placeholder:text-white/20 tracking-widest text-lg w-36 font-mono"
-            />
-          </FormField>
+        <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 space-y-4">
+          {/* Where to send the money */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-blue-300">
+              <Building2 className="h-4 w-4 shrink-0" />
+              <span className="text-sm font-semibold">
+                {locale === "zh-TW" ? "匯款資訊" : "Bank Transfer Details"}
+              </span>
+            </div>
+            <Separator className="bg-blue-500/20" />
+            <dl className="space-y-2 text-sm">
+              <div className="flex justify-between gap-2">
+                <dt className="text-white/50 shrink-0">
+                  {locale === "zh-TW" ? "銀行" : "Bank"}
+                </dt>
+                <dd className="text-white text-right">
+                  {locale === "zh-TW" ? "中國信託商業銀行（CTBC）" : "CTBC Bank (China Trust)"}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-white/50 shrink-0">
+                  {locale === "zh-TW" ? "帳號" : "Account Number"}
+                </dt>
+                <dd className="font-mono text-white">822-037-540606649</dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-white/50 shrink-0">
+                  {locale === "zh-TW" ? "戶名" : "Account Name"}
+                </dt>
+                <dd className="text-white text-right">
+                  {locale === "zh-TW" ? "MATSIDE 有限公司" : "Matside Co., Ltd."}
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          <Separator className="bg-blue-500/20" />
+
+          {/* Last 5 digits for matching */}
+          <div className="space-y-3">
+            <p className="text-sm text-blue-300/80">
+              {locale === "zh-TW"
+                ? "請輸入您付款帳號的末五碼，方便我們核對款項。"
+                : "Enter the last 5 digits of the bank account you'll transfer from so we can match your payment."}
+            </p>
+            <FormField
+              label={locale === "zh-TW" ? "帳號末五碼" : "Last 5 digits of your account"}
+              error={bankLastFiveError}
+            >
+              <Input
+                value={bankLastFive}
+                onChange={(e) => onBankLastFiveChange(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                maxLength={5}
+                inputMode="numeric"
+                placeholder="12345"
+                className="border-white/20 bg-white/5 text-white placeholder:text-white/20 tracking-widest text-lg w-36 font-mono"
+              />
+            </FormField>
+          </div>
         </div>
       )}
 
