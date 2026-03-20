@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import type { ProductWithVariants, ProductOptionGroup, SelectedOption } from "@/lib/supabase/types";
 
 // ── Size groupings ────────────────────────────────────────────────────────────
-const YOUTH_SIZES   = ["Y-XS", "Y-S", "Y-M", "Y-L"];
+const YOUTH_SIZES   = ["Y-XS", "Y-S", "Y-M", "Y-L", "Y-XL"];
 const ADULT_SIZES   = ["XS", "S", "M", "L", "XL", "XXL"];
 const GI_ADULT_M    = ["A0", "A1", "A1L", "A2", "A3", "A4"];
 const GI_KIDS       = ["M000", "M00", "M0", "M1", "M2", "M3"];

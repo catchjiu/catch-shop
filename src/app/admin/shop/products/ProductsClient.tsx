@@ -64,7 +64,7 @@ function autoSku(slug: string, size: string, color: string): string {
 const SIZE_PRESETS = [
   { label: "Kids Gi",    sizes: ["M000", "M00", "M0", "M1", "M2", "M3", "M4"] },
   { label: "Adult Gi",   sizes: ["A0", "A1", "A2", "A3", "A4", "F1", "F2", "F3", "F4"] },
-  { label: "Kids No-Gi", sizes: ["Y-XS", "Y-S", "Y-M", "Y-L"] },
+  { label: "Kids No-Gi", sizes: ["Y-XS", "Y-S", "Y-M", "Y-L", "Y-XL"] },
   { label: "Adult No-Gi",sizes: ["XS", "S", "M", "L", "XL", "XXL"] },
 ] as const;
 
